@@ -1,0 +1,203 @@
+---
+title: LLM 多轮对话性能衰减
+description: LLM 多轮对话性能衰减曲线分析
+---
+
+# LLM 多轮对话性能衰减曲线
+
+数据来源：MSR/Salesforce 2025 · AIhaberleri 2026 · Stanford "Lost in Middle"
+
+## 性能衰减曲线
+
+<div class="chart-container">
+  <div class="chart-wrapper">
+    <canvas id="degradationChart"></canvas>
+  </div>
+</div>
+
+## 关键洞察
+
+<div class="key-insights">
+  <div class="insight-card">
+    <h3>2轮即开始降级</h3>
+    <div class="value">-2轮</div>
+    <div class="description">多轮对话的性能下降在2轮时就开始出现</div>
+  </div>
+  <div class="insight-card">
+    <h3>25轮性能损失</h3>
+    <div class="value">-33%</div>
+    <div class="description">25轮对话后，准确率下降近三分之一</div>
+  </div>
+  <div class="insight-card">
+    <h3>中间位置衰减</h3>
+    <div class="value">-30%</div>
+    <div class="description">中间位置信息 recall 准确率下降超过 30%</div>
+  </div>
+  <div class="insight-card">
+    <h3>有效上限</h3>
+    <div class="value">60-70%</div>
+    <div class="description">质量在上下文 60-70% 时开始下降</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const ctx = document.getElementById('degradationChart').getContext('2d');
+  const dataPoints = [
+    { turns: 0, performance: 100 },
+    { turns: 2, performance: 90 },
+    { turns: 5, performance: 85 },
+    { turns: 10, performance: 78 },
+    { turns: 15, performance: 68 },
+    { turns: 20, performance: 58 },
+    { turns: 25, performance: 50 },
+    { turns: 30, performance: 42 },
+    { turns: 35, performance: 35 },
+    { turns: 40, performance: 28 },
+  ];
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dataPoints.map(d => d.turns + '轮'),
+      datasets: [{
+        label: '相对性能 (%)',
+        data: dataPoints.map(d => d.performance),
+        borderColor: '#4ecdc4',
+        backgroundColor: 'rgba(78, 205, 196, 0.15)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#4ecdc4',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            label: ctx => `相对性能: ${ctx.raw}%  |  损失: -${100-ctx.raw}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#888' },
+          title: { display: true, text: '对话轮次', color: '#666' }
+        },
+        y: {
+          min: 0, max: 100,
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#888', callback: v => v + '%' },
+          title: { display: true, text: '相对性能 (%)', color: '#666' }
+        }
+      }
+    },
+    plugins: [{
+      afterDraw: chart => {
+        const ctx = chart.ctx;
+        const y = chart.scales.y;
+        ctx.save();
+        ctx.strokeStyle = '#ffe66d';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(chart.chartArea.left, y.getPixelForValue(70));
+        ctx.lineTo(chart.chartArea.right, y.getPixelForValue(70));
+        ctx.stroke();
+        ctx.fillStyle = '#ffe66d';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('质量警戒线 70%', chart.chartArea.right - 90, y.getPixelForValue(70) - 8);
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.beginPath();
+        ctx.moveTo(chart.chartArea.left, y.getPixelForValue(50));
+        ctx.lineTo(chart.chartArea.right, y.getPixelForValue(50));
+        ctx.stroke();
+        ctx.fillStyle = '#ff6b6b';
+        ctx.fillText('严重衰减 50%', chart.chartArea.right - 85, y.getPixelForValue(50) - 8);
+        ctx.restore();
+      }
+    }]
+  });
+})();
+</script>
+
+<style>
+body {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  min-height: 100vh;
+  padding: 40px 20px;
+  color: #e0e0e0;
+}
+
+h1 {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.subtitle {
+  text-align: center;
+  color: #888;
+  margin-bottom: 40px;
+  font-size: 14px;
+}
+
+.chart-container {
+  background: rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 30px;
+  margin-bottom: 40px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 400px;
+}
+
+.key-insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.insight-card {
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.insight-card h3 {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.insight-card .value {
+  font-size: 32px;
+  font-weight: 600;
+  color: #4ecdc4;
+}
+
+.insight-card .description {
+  font-size: 13px;
+  color: #999;
+  margin-top: 8px;
+}
+</style>

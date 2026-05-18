@@ -8,6 +8,7 @@
 
 - [服务访问入口](/knowledge/service-endpoints) - 各环境的访问地址
 - [架构决策记录](/knowledge/adr/) - 重要架构决策记录
+- [LLM 性能衰减](/knowledge/model-degradation) - 多轮对话性能分析
 
 ## 关于本项目
 

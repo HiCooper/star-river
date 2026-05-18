@@ -15,6 +15,8 @@ export default withMermaid(defineConfig({
   head: [
     ['link', { rel: 'icon', href: '/logo.svg' }],
     ['meta', { name: 'theme-color', content: '#3b82f6' }],
+    ['link', { rel: 'stylesheet', href: '/custom-mermaid.css' }],
+    ['script', { src: '/mermaid-zoom.js' }],
   ],
 
   themeConfig: {

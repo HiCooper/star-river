@@ -416,3 +416,17 @@ sequenceDiagram
 | **首次渲染延迟** | 首次触发付费墙时需要下载资源，有网络延迟 |
 | **预加载策略** | Superwall 会在后台预加载用户最可能看到的付费墙 |
 | **更新时机** | 付费墙内容更新后，已缓存的用户可能看到旧版本直到刷新 |
+
+---
+
+## Hydra-Wall vs Superwall 架构对比
+
+| 维度 | Superwall | Hydra-Wall |
+|------|-----------|------------|
+| **渲染方式** | WebView 加载前端 Bundle | WebView 加载前端 Bundle |
+| **前端资源** | Superwall CDN 托管 | Hydra CDN 托管 |
+| **后端 API** | 提供付费墙配置数据 | 提供付费墙配置数据 |
+| **SDK 评估** | 设备端规则评估 | 设备端规则评估 |
+| **配置更新** | Dashboard 热更新 | Console 热更新 |
+
+> **结论**：Hydra-Wall 采用与 Superwall 完全一致的架构设计，都是通过 WebView 加载前端静态资源，前端调用后端 API 获取配置数据进行动态渲染。

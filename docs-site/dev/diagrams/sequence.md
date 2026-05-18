@@ -5,15 +5,16 @@ description: Hydra 核心交互时序图
 
 # Hydra 核心交互时序图
 
-本文档包含 Hydra 支付基础设施的 3 个核心交互时序图。
+本文档包含 Hydra 支付基础设施的核心交互时序图，包含购买流程、权限检查、支付回调和 WebView 渲染架构。
 
 ## 目录
 
 - [流程一：完整购买流程](#流程一完整购买流程)
 - [流程二：权限检查流程](#流程二权限检查流程)
 - [流程三：支付路由与渠道回调](#流程三支付路由与渠道回调)
+- [流程四：客户端付费墙加载流程（WebView 渲染）](#流程四客户端付费墙加载流程webview-渲染)
+- [Hydra-Wall 核心架构](#hydra-wall-核心架构)
 
----
 
 ## 流程一：完整购买流程
 
@@ -363,3 +364,164 @@ sequenceDiagram
   padding: 4px 0;
 }
 </style>
+
+---
+
+## 流程四：客户端付费墙加载流程（WebView 渲染）
+
+**描述**：客户端 App 通过 WebView 加载 Hydra-Wall 托管的付费墙页面，前端调用后端 API 获取配置数据进行渲染
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as 客户端 App
+    participant SDK as Hydra-Wall SDK
+    participant WV as WebView
+    participant Frontend as Hydra-Wall 前端
+    participant Backend as Hydra-Wall 后端
+
+    Note over App: 客户端触发付费墙展示
+    App->>SDK: register(placement)
+
+    SDK->>SDK: evaluate() → paywallId
+    SDK-->>App: 返回付费墙 ID
+
+    App->>App: 创建 WebView 实例
+
+    App->>WV: 加载付费墙页面
+    WV->>Frontend: GET /paywall/{paywallId}
+
+    Note over Frontend: 首次请求，加载 HTML 模板
+    Frontend-->>WV: 返回 HTML/CSS/JS Bundle
+
+    Note over WV: WebView 解析 HTML 并加载前端资源
+
+    WV->>Backend: 获取付费墙配置
+    WV->>Backend: GET /api/v1/paywalls/{paywallId}/config
+
+    Backend->>Backend: 查找付费墙配置
+    Backend-->>WV: PaywallConfig JSON<br/>{template, products, theme, rules}
+
+    Note over WV: 前端 JS 根据配置渲染付费墙 UI
+    WV->>WV: 渲染产品列表、定价、订阅按钮
+
+    Note over WV: 用户看到完整的付费墙页面
+    Note over WV: 可以浏览产品、选择订阅计划
+
+    WV->>Frontend: 用户选择产品并点击订阅
+    Frontend->>Backend: 创建支付会话
+    Backend-->>Frontend: paymentUrl
+
+    WV->>WV: 跳转至支付页面
+```
+
+### WebView 渲染的优势
+
+| 优势 | 说明 |
+|------|------|
+| **跨平台一致** | 同一 HTML/CSS 在 iOS/Android/Web 渲染完全一致 |
+| **热更新** | 付费墙样式和逻辑可随时修改，无需 App 更新 |
+| **快速迭代** | 运营人员可通过后台修改付费墙配置 |
+| **CDN 加速** | 前端资源从 CDN 加载，全球快速访问 |
+
+### 前端与后端分工
+
+```mermaid
+sequenceDiagram
+    participant WV as WebView
+    participant Frontend as Hydra-Wall 前端
+    participant Backend as Hydra-Wall 后端
+
+    Note over Frontend: 职责：渲染 UI、处理交互
+    WV->>Frontend: 加载 HTML/CSS/JS
+    Frontend-->>WV: 返回静态资源
+
+    Note over Frontend: 前端调用后端 API 获取数据
+    WV->>Backend: GET /api/v1/paywalls/{id}/config
+    WV->>Backend: GET /api/v1/products
+    WV->>Backend: GET /api/v1/subscriptions/{userId}/status
+
+    Note over Backend: 职责：提供配置数据、业务逻辑
+    Backend-->>WV: PaywallConfig, Products, SubscriptionStatus
+```
+
+| 组件 | 职责 |
+|------|------|
+| **前端 (Static Resources)** | HTML/CSS/JS Bundle，提供 UI 渲染和用户交互 |
+| **后端 (API Service)** | 提供付费墙配置、产品数据、用户订阅状态 |
+
+---
+
+## Hydra-Wall 核心架构
+
+### 系统架构图
+
+```
+客户端 App
+    │
+    ├── iOS SDK
+    ├── Android SDK
+    └── Web SDK
+            │
+            ▼
+┌─────────────────────────────────────────────────────────┐
+│                    Hydra-Wall SDK                       │
+│  • 本地缓存 Campaign 配置                               │
+│  • 设备端规则评估                                        │
+│  • 调用后端 API 获取付费墙配置                           │
+└─────────────────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────────────────┐
+│               Hydra-Wall 前端 (静态资源)                │
+│  • HTML/CSS/JS Bundle                                   │
+│  • 调用后端 API 获取产品、定价、主题                     │
+│  • CDN 加速全球访问                                      │
+└─────────────────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────────────────┐
+│               Hydra-Wall 后端服务                       │
+│  • PaywallConfig API                                    │
+│  • 产品、定价、主题配置                                  │
+│  • Entitlement 管理                                      │
+│  • Targeting Engine                                     │
+│  • Experiment Service                                   │
+└─────────────────────────────────────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────────────────────────┐
+│               数据存储层                                 │
+│  • wall_db (PostgreSQL) - 付费墙配置、用户权限          │
+│  • Redis Cache - 配置缓存加速                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 渲染流程时序
+
+```mermaid
+sequenceDiagram
+    participant App as 客户端 App
+    participant SDK as Hydra-Wall SDK
+    participant WV as WebView
+    participant FE as Hydra-Wall 前端
+    participant BE as Hydra-Wall 后端
+
+    App->>SDK: register(placement)
+    SDK->>SDK: 本地评估规则
+    SDK-->>App: paywallId
+
+    App->>WV: loadUrl(/paywall/{paywallId})
+    WV->>FE: GET /paywall/{paywallId}
+    FE-->>WV: HTML/CSS/JS
+
+    WV->>BE: GET /api/v1/paywalls/{id}/config
+    BE-->>WV: PaywallConfig
+
+    WV->>BE: GET /api/v1/products
+    BE-->>WV: Products List
+
+    WV->>WV: 渲染付费墙 UI
+```
+
+

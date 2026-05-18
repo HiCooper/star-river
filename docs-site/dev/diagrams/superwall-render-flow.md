@@ -286,20 +286,6 @@ sequenceDiagram
 
 ---
 
-## Superwall vs Hydra-Wall 对比
-
-| 维度 | Superwall | Hydra-Wall |
-|------|-----------|------------|
-| **渲染引擎** | WebView 跨平台一致 | 未明确，预计类似 |
-| **规则评估** | 设备端评估，无延迟 | 服务端评估，每次请求 |
-| **配置缓存** | SDK 本地缓存加后台同步 | 服务端管理 |
-| **付费墙托管** | Superwall 托管 | Hydra 托管 |
-| **支付处理** | Stripe/Paddle/IAP | 跳转至渠道 |
-| **Webhook 通知** | 支持多事件类型 | 支持支付回调 |
-| **离线支持** | 部分功能可用 | 依赖网络 |
-
----
-
 ## 参考资料
 
 - [Why We Chose Web Views - Superwall](https://superwall.com/blog/why-we-chose-web-views-the-strategic-advantage-behind-superwalls)

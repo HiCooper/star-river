@@ -93,6 +93,7 @@ export default withMermaid(defineConfig({
           text: '行业参考',
           items: [
             { text: 'Superwall 付费墙渲染流程', link: '/dev/diagrams/superwall-render-flow' },
+            { text: 'Stripe 支付服务工作流程', link: '/dev/diagrams/stripe-payment-flow' },
           ],
         },
         {

@@ -25,6 +25,10 @@
 - [渠道适配器](/dev/pay/channel-adapters) - 插件化渠道适配
 - [API 参考](/dev/pay/api) - REST API 详细文档
 
+### 行业参考
+
+- [Superwall 付费墙渲染流程](/dev/diagrams/superwall-render-flow) - 同行业参考：Superwall 架构设计与渲染流程
+
 ### SDK 集成
 
 - [SDK 概览](/dev/sdk/) - 客户端 SDK 简介

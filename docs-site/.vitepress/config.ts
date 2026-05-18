@@ -88,6 +88,12 @@ export default withMermaid(defineConfig({
           ],
         },
         {
+          text: '行业参考',
+          items: [
+            { text: 'Superwall 付费墙渲染流程', link: '/dev/diagrams/superwall-render-flow' },
+          ],
+        },
+        {
           text: 'SDK 集成',
           items: [
             { text: 'SDK 概览', link: '/dev/sdk/' },

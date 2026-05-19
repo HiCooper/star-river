@@ -142,9 +142,19 @@ Webhook 回调更新状态
                               返回权限状态
 ```
 
+## 技术选型
+
+详见 [技术选型依据](./tech-stack)，包含每个技术栈的决策分析和对比。
+
+## 服务集成
+
+详见 [Hydra-Wall 与 Hydra-Pay 集成架构](./integration)，包含服务间通信和数据共享设计。
+
 ## 下一步
 
-- [服务独立部署](/dev/architecture/independence)
-- [数据模型](/dev/architecture/data-model)
-- [Hydra-Wall 架构](/dev/wall/service-architecture)
-- [Hydra-Pay 架构](/dev/pay/service-architecture)
+- [技术选型依据](./tech-stack)
+- [Hydra-Wall 与 Hydra-Pay 集成架构](./integration)
+- [服务独立部署](./independence)
+- [数据模型](./data-model)
+- [Hydra-Wall 架构](../wall/service-architecture)
+- [Hydra-Pay 架构](../pay/service-architecture)

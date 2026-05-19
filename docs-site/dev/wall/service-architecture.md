@@ -4,7 +4,7 @@ Hydra-Wall 是自建的付费墙服务（类比同类服务），负责付费墙
 
 ## 架构设计目标
 
-与  架构一致，采用：
+采用以下核心架构设计：
 - **SDK 本地缓存配置** + **设备端规则评估**（零延迟、离线可用）
 - **WebView 渲染付费墙**（跨平台一致、热更新）
 - **前端与后端分离**（前端加载 Bundle，后端提供 API）
@@ -327,34 +327,6 @@ sequenceDiagram
 | 首次安装，无网络 | 否 | 否 |
 
 ## 核心交互时序
-
-### 付费墙展示流程
-
-```mermaid
-sequenceDiagram
-    participant Client as 客户端 SDK
-    participant Engine as Paywall Engine
-    participant Redis as Redis
-    participant Experiment as Experiment Framework
-    participant Targeting as Targeting Engine
-
-    Client->>Engine: 请求付费墙配置 (userId, placement)
-    Engine->>Redis: 查询用户实验分组
-    Redis-->>Engine: 返回 experimentBucket
-
-    Engine->>Experiment: 获取实验配置
-    Experiment-->>Engine: 返回 paywallVersion
-
-    Engine->>Targeting: 查询用户行为定向
-    Targeting-->>Engine: 返回 targetingResult
-
-    Engine->>Redis: 查询用户权限状态
-    Redis-->>Engine: 返回 entitlementStatus
-
-    Engine->>Engine: 综合决策：展示哪个版本付费墙
-
-    Engine-->>Client: 返回 paywallConfig
-```
 
 ### 支付成功后的权限更新流程
 

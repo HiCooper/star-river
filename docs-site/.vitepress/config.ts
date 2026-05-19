@@ -68,6 +68,8 @@ export default withMermaid(defineConfig({
           items: [
             { text: '架构图集', link: '/dev/diagrams/' },
             { text: '整体架构', link: '/dev/architecture/' },
+            { text: '服务集成', link: '/dev/architecture/integration' },
+            { text: '技术选型', link: '/dev/architecture/tech-stack' },
             { text: '服务独立部署', link: '/dev/architecture/independence' },
             { text: '数据模型', link: '/dev/architecture/data-model' },
           ],

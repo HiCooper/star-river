@@ -1,0 +1,6 @@
+[submodule "hydra-pay"]
+	path = hydra-pay
+	url = git@github.com:HiCooper/hydra-pay.git
+[submodule "hydra-wall"]
+	path = hydra-wall
+	url = git@github.com:HiCooper/hydra-wall.git

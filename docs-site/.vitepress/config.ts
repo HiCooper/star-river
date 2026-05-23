@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default withMermaid(defineConfig({
   vite: {},
-  title: 'Hydra',
+  title: '星河支付',
   description: 'Hydra 支付基础设施 - 付费墙 + 统一支付网关',
   base: '/',
   lang: 'zh-CN',
@@ -88,7 +88,8 @@ export default withMermaid(defineConfig({
             { text: '服务架构', link: '/dev/pay/service-architecture' },
             { text: '支付路由', link: '/dev/pay/payment-router' },
             { text: '渠道适配器', link: '/dev/pay/channel-adapters' },
-            { text: 'API 参考', link: '/dev/pay/api' },
+            { text: '回调处理流程', link: '/dev/pay/callback-flow' },
+            { text: 'API 参考', link: '/dev/pay/api-reference' },
           ],
         },
         {
@@ -130,6 +131,10 @@ export default withMermaid(defineConfig({
           text: '内部知识',
           items: [
             { text: '服务访问入口', link: '/knowledge/service-endpoints' },
+            { text: '支付宝沙箱验证', link: '/knowledge/alipay-sandbox-verification' },
+            { text: '微信支付接入准备', link: '/knowledge/wechat-pay-setup' },
+            { text: '市场调研与借鉴', link: '/knowledge/competitive-analysis' },
+            { text: '服务商设计决策', link: '/knowledge/service-provider-design' },
             { text: '架构决策记录', link: '/knowledge/adr/' },
           ],
         },

@@ -7,6 +7,10 @@
 ## 内容导航
 
 - [服务访问入口](/knowledge/service-endpoints) - 各环境的访问地址
+- [支付宝沙箱验证](/knowledge/alipay-sandbox-verification) - hydra-pay 支付宝渠道沙箱全链路验证
+- [微信支付接入准备](/knowledge/wechat-pay-setup) - 微信支付商户凭证申请与配置指南
+- [服务商设计决策](/knowledge/service-provider-design) - 回调链路与 App 子商户映射设计理由
+- [市场调研与借鉴](/knowledge/competitive-analysis) - 竞品能力对标与星河支付差异化
 - [架构决策记录](/knowledge/adr/) - 重要架构决策记录
 - [LLM 性能衰减](/knowledge/model-degradation) - 多轮对话性能分析
 

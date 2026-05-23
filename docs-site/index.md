@@ -2,9 +2,9 @@
 layout: home
 
 hero:
-  name: "Hydra"
-  text: "支付基础设施"
-  tagline: "自建 Superwall + Stripe，一站式付费墙 + 统一支付网关解决方案"
+  name: "星河支付"
+  text: "AI 时代的支付基础设施"
+  tagline: "多渠道统一网关 + 智能付费墙，一站式支付解决方案"
   actions:
     - theme: brand
       text: 快速开始
@@ -15,11 +15,11 @@ hero:
 
 features:
   - icon: 🧱
-    title: Hydra-Wall 付费墙
+    title: 星河 Wall 付费墙
     details: 自建 Superwall，可视化编辑器、行为触发、A/B 测试、收入分析
   
   - icon: 💳
-    title: Hydra-Pay 支付网关
+    title: 星河 Pay 支付网关
     details: 自建 Stripe，统一接入支付宝、微信、Stripe、Apple IAP 等多种渠道
 
   - icon: 📦

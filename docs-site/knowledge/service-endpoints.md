@@ -32,9 +32,8 @@
 
 ### 本地开发
 
-- 服务端口: `8081`
-- 健康检查: `http://localhost:8081/health`
-- Metrics: `http://localhost:8081/metrics`
+- 服务端口: `8082`
+- 健康检查: `http://localhost:8082/health`
 
 ## 管理后台
 
@@ -61,11 +60,16 @@
 
 回调 URL 需要是 HTTPS。
 
-## 内部服务 (开发环境 Docker)
+## 内部服务 (开发环境)
 
 | 服务 | 容器名 | 端口 | 访问地址 |
 |------|--------|------|---------|
-| wall-db | hydra-wall-postgres | 5432 | `localhost:5432` |
-| pay-db | hydra-pay-postgres | 5433 | `localhost:5433` |
-| Redis | hydra-redis | 6379 | `localhost:6379` |
-| Admin API | hydra-admin | 3000 | `http://localhost:3000` |
+| PostgreSQL | postgres | 5432 | `localhost:5432` |
+| Redis | redis | 6379 | `localhost:6379` |
+| Wall API | - | 8080 | `http://localhost:8080` |
+| Pay API | - | 8082 | `http://localhost:8082` |
+| Admin UI | - | 3000 | `http://localhost:3000` |
+
+::: tip 数据库
+wall-service 和 pay-service 共用同一个 PostgreSQL 实例，分别使用 `wall_db` 和 `hydra_pay` 两个 database。中间件由项目根目录的 `docker-compose.infra.yml` 统一管理。
+:::

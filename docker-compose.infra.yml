@@ -1,0 +1,51 @@
+# ============================================
+# Star-River shared middleware infrastructure
+#
+# Start before any service:
+#   docker compose -f docker-compose.infra.yml up -d
+# ============================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: hydra
+      POSTGRES_PASSWORD: hydra_secret
+      POSTGRES_DB: wall_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/infra-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hydra -d wall_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shared-infra
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shared-infra
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  shared-infra:
+    name: shared-infra

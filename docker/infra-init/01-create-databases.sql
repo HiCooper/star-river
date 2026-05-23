@@ -1,0 +1,2 @@
+CREATE DATABASE hydra_pay;
+GRANT ALL PRIVILEGES ON DATABASE hydra_pay TO hydra;

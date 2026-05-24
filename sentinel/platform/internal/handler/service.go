@@ -55,6 +55,6 @@ func (h *ServiceHandler) UpdateServiceConfig(c *gin.Context) {
 	}
 
 	svc.ConfigJSON = req.ConfigJSON
-	h.db.Save(&svc)
+	if err := h.db.Save(&svc).Error; err != nil { response.Error(c, http.StatusInternalServerError, errors.InternalError, "Failed to save service"); return }
 	response.Success(c, svc)
 }

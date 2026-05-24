@@ -31,7 +31,7 @@ func (h *SafetyHandler) CreateRule(c *gin.Context) {
 		response.Error(c, http.StatusBadRequest, errors.ValidationError, err.Error())
 		return
 	}
-	h.db.Create(&rule)
+	if err := h.db.Create(&rule).Error; err != nil { response.Error(c, http.StatusInternalServerError, errors.InternalError, "Failed to create rule"); return }
 	response.Success(c, rule)
 }
 

@@ -44,6 +44,7 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 		return
 	}
 
+	actualCount := 0
 	for _, req := range reqs {
 		sig := computeSignature(req.ServiceName, req.ErrorCode, req.File, req.Message)
 		now := time.Now()
@@ -78,10 +79,11 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 		// Re-read occurrence_count after upsert to get accurate value
 		h.db.Model(&es).Select("occurrence_count").Scan(&es.OccurrenceCount)
 
+		actualCount++
 		h.maybeCreateIssue(&es, &req)
 	}
 
-	response.Success(c, gin.H{"ingested": len(reqs)})
+	response.Success(c, gin.H{"ingested": actualCount})
 }
 
 func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestErrorReq) {

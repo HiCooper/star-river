@@ -42,15 +42,15 @@ func (p *Publisher) Publish(entries []tailer.ErrorEntry) error {
 	reqs := make([]ingestReq, len(entries))
 	for i, e := range entries {
 		reqs[i] = ingestReq{
-			Timestamp:  e.Timestamp,
-			Level:      e.Level,
-			ErrorCode:  e.ErrorCode,
-			Message:    e.Message,
-			StackTrace: e.StackTrace,
-			TraceID:    e.TraceID,
-			Handler:    e.Handler,
-			File:       e.File,
-			Line:       e.Line,
+			Timestamp:   e.Timestamp,
+			Level:       e.Level,
+			ErrorCode:   e.ErrorCode,
+			Message:     e.Message,
+			StackTrace:  e.StackTrace,
+			TraceID:     e.TraceID,
+			Handler:     e.Handler,
+			File:        e.File,
+			Line:        e.Line,
 			ServiceName: p.ServiceName,
 		}
 	}
@@ -77,21 +77,23 @@ func (p *Publisher) Publish(entries []tailer.ErrorEntry) error {
 	return nil
 }
 
-func (p *Publisher) Run(entries <-chan tailer.ErrorEntry) {
+func (p *Publisher) Run(entries <-chan tailer.ErrorEntry, done chan<- struct{}) {
+	defer close(done)
+
 	batch := make([]tailer.ErrorEntry, 0, 10)
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	flush := func() {
+	flush := func() (success bool) {
 		if len(batch) == 0 {
-			return
+			return true
 		}
 		if err := p.Publish(batch); err != nil {
-			log.Printf("[sidecar] publish error: %v", err)
-		} else {
-			log.Printf("[sidecar] published %d errors", len(batch))
+			log.Printf("[sidecar] publish error (retaining %d entries): %v", len(batch), err)
+			return false
 		}
-		batch = batch[:0]
+		log.Printf("[sidecar] published %d errors", len(batch))
+		return true
 	}
 
 	for {
@@ -103,10 +105,14 @@ func (p *Publisher) Run(entries <-chan tailer.ErrorEntry) {
 			}
 			batch = append(batch, entry)
 			if len(batch) >= 10 {
-				flush()
+				if flush() {
+					batch = batch[:0]
+				}
 			}
 		case <-ticker.C:
-			flush()
+			if flush() {
+				batch = batch[:0]
+			}
 		}
 	}
 }

@@ -15,8 +15,9 @@ func main() {
 
 	entries := make(chan tailer.ErrorEntry, 100)
 	pub := publisher.New(cfg.PlatformURL, cfg.ServiceName)
+	done := make(chan struct{})
 
-	go pub.Run(entries)
+	go pub.Run(entries, done)
 
 	var reader *os.File
 	if cfg.LogPath != "" {
@@ -33,5 +34,6 @@ func main() {
 	}
 
 	tailer.Tail(reader, entries)
+	<-done
 	log.Println("[sidecar] exiting")
 }

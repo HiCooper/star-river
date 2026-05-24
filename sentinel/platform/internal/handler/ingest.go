@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/hydra/sentinel-service/internal/model"
 	"github.com/hydra/sentinel-service/pkg/errors"
@@ -46,41 +48,52 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 		sig := computeSignature(req.ServiceName, req.ErrorCode, req.File, req.Message)
 		now := time.Now()
 
-		var existing model.ErrorSignature
-		err := h.db.Where("service_name = ? AND signature = ?", req.ServiceName, sig).First(&existing).Error
-		if err == nil {
-			existing.OccurrenceCount++
-			existing.LastSeenAt = now
-			h.db.Save(&existing)
-			h.maybeCreateIssue(&existing, &req)
-		} else {
-			es := model.ErrorSignature{
-				ServiceName:     req.ServiceName,
-				Signature:       sig,
-				ErrorCode:       req.ErrorCode,
-				NormalizedMsg:   simplifyMsg(req.Message),
-				FirstFile:       req.File,
-				FirstFunction:   req.Handler,
-				FirstLine:       req.Line,
-				OccurrenceCount: 1,
-				FirstSeenAt:     now,
-				LastSeenAt:      now,
-			}
-			h.db.Create(&es)
-			h.maybeCreateIssue(&es, &req)
+		// Atomic upsert: insert or increment counter atomically
+		es := model.ErrorSignature{
+			ServiceName: req.ServiceName,
+			Signature:   sig,
 		}
+		result := h.db.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "service_name"}, {Name: "signature"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{
+				"occurrence_count": gorm.Expr("error_signatures.occurrence_count + 1"),
+				"last_seen_at":     now,
+			}),
+		}).Create(&es)
+
+		if result.Error != nil {
+			continue
+		}
+
+		// On first insert, populate remaining fields
+		if result.RowsAffected > 0 {
+			h.db.Model(&es).Updates(map[string]interface{}{
+				"error_code":    req.ErrorCode,
+				"normalized_msg": simplifyMsg(req.Message),
+				"first_file":    req.File,
+				"first_function": req.Handler,
+				"first_line":    req.Line,
+				"first_seen_at": now,
+			})
+		}
+
+		h.maybeCreateIssue(&es, &req)
 	}
 
 	response.Success(c, gin.H{"ingested": len(reqs)})
 }
 
 func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestErrorReq) {
-	if sig.OccurrenceCount == 1 || sig.OccurrenceCount%10 == 0 {
+	var currentCount int64
+	h.db.Model(&model.ErrorSignature{}).Where("id = ?", sig.ID).Select("occurrence_count").Scan(&currentCount)
+
+	if currentCount == 1 || currentCount%10 == 0 {
 		var count int64
 		h.db.Model(&model.Issue{}).Where("signature_id = ? AND status NOT IN ('resolved','ignored')", sig.ID).Count(&count)
 		if count > 0 {
 			return
 		}
+
 		issue := model.Issue{
 			ServiceName: sig.ServiceName,
 			SignatureID: &sig.ID,
@@ -91,7 +104,10 @@ func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestE
 			FirstSeenAt: sig.FirstSeenAt,
 			LastSeenAt:  sig.LastSeenAt,
 		}
-		h.db.Create(&issue)
+		if err := h.db.Create(&issue).Error; err != nil {
+			return
+		}
+
 		h.db.Create(&model.IssueTimeline{
 			IssueID:     issue.ID,
 			EventType:   "created",
@@ -107,8 +123,9 @@ func computeSignature(service, errorCode, file, message string) string {
 }
 
 func simplifyMsg(msg string) string {
-	if len(msg) > 80 {
-		msg = msg[:80]
+	if utf8.RuneCountInString(msg) > 80 {
+		runes := []rune(msg)
+		return string(runes[:80])
 	}
 	return msg
 }

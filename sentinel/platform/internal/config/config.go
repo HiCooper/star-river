@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -51,12 +52,9 @@ func getEnvInt(key string, fallback int) int {
 	if s == "" {
 		return fallback
 	}
-	var v int
-	for _, c := range s {
-		if c < '0' || c > '9' {
-			return fallback
-		}
-		v = v*10 + int(c-'0')
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return fallback
 	}
 	return v
 }

@@ -23,11 +23,11 @@ export default function IssueBoard() {
   const [filter, setFilter] = useState({ service: '', severity: '', status: '' });
 
   useEffect(() => {
-    fetchStats().then(r => setStats(r.data));
+    fetchStats().then(r => { if (r) setStats(r); });
   }, []);
 
   useEffect(() => {
-    fetchIssues(filter).then(r => setIssues(r.data || []));
+    fetchIssues(filter).then(r => setIssues(r.data));
   }, [filter]);
 
   return (

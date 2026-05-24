@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -34,8 +35,8 @@ func (h *IssueHandler) ListIssues(c *gin.Context) {
 		query = query.Where("status = ?", status)
 	}
 
-	page := 1
-	pageSize := 20
+	page := parseIntParam(c, "page", 1)
+	pageSize := parseIntParam(c, "page_size", 20)
 	var total int64
 	query.Count(&total)
 	query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&issues)
@@ -71,7 +72,10 @@ func (h *IssueHandler) ApproveIssue(c *gin.Context) {
 	now := time.Now()
 	issue.ReviewStatus = "approved"
 	issue.ReviewedAt = &now
-	h.db.Save(&issue)
+	if err := h.db.Save(&issue).Error; err != nil {
+		response.Error(c, http.StatusInternalServerError, errors.InternalError, "Failed to save issue")
+		return
+	}
 
 	h.db.Create(&model.IssueTimeline{
 		IssueID:     issue.ID,
@@ -93,7 +97,10 @@ func (h *IssueHandler) RejectIssue(c *gin.Context) {
 	now := time.Now()
 	issue.ReviewStatus = "rejected"
 	issue.ReviewedAt = &now
-	h.db.Save(&issue)
+	if err := h.db.Save(&issue).Error; err != nil {
+		response.Error(c, http.StatusInternalServerError, errors.InternalError, "Failed to save issue")
+		return
+	}
 
 	h.db.Create(&model.IssueTimeline{
 		IssueID:     issue.ID,
@@ -102,4 +109,16 @@ func (h *IssueHandler) RejectIssue(c *gin.Context) {
 	})
 
 	response.Success(c, issue)
+}
+
+func parseIntParam(c *gin.Context, key string, fallback int) int {
+	s := c.Query(key)
+	if s == "" {
+		return fallback
+	}
+	v, err := strconv.Atoi(s)
+	if err != nil || v < 1 {
+		return fallback
+	}
+	return v
 }

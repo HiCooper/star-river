@@ -45,7 +45,7 @@ services:
     ports:
       - "3001:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8084
+      NEXT_PUBLIC_API_URL: http://platform:8082
 
 volumes:
   pgdata:

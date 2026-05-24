@@ -12,7 +12,7 @@ export default function IssueDetail() {
   const [issue, setIssue] = useState<Issue | null>(null);
 
   useEffect(() => {
-    if (id) fetchIssue(id as string).then(r => setIssue(r.data));
+    if (id) fetchIssue(id as string).then(r => { if (r) setIssue(r); });
   }, [id]);
 
   if (!issue) return <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>加载中...</div>;

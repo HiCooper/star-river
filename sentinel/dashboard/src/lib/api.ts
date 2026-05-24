@@ -51,19 +51,30 @@ function buildQuery(params: Record<string, string>): string {
   return s ? `?${s}` : '';
 }
 
-export async function fetchIssues(params: Record<string, string>): Promise<IssueListResponse> {
+async function safeFetch<T>(url: string, opts?: RequestInit): Promise<T> {
+  const res = await fetch(url, opts);
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error?.message || 'API request failed');
+  }
+  return json.data as T;
+}
+
+export async function fetchIssues(params: Record<string, string>): Promise<{ data: Issue[]; pagination: Pagination }> {
   const res = await fetch(`${BASE_URL}/api/v1/issues${buildQuery(params)}`);
-  return res.json();
+  const json = await res.json();
+  if (!json.success) {
+    return { data: [], pagination: { page: 1, page_size: 20, total: 0, total_pages: 0 } };
+  }
+  return { data: json.data, pagination: json.pagination };
 }
 
-export async function fetchIssue(id: string): Promise<{ success: boolean; data: Issue }> {
-  const res = await fetch(`${BASE_URL}/api/v1/issues/${id}`);
-  return res.json();
+export async function fetchIssue(id: string): Promise<Issue | null> {
+  return safeFetch<Issue>(`${BASE_URL}/api/v1/issues/${id}`).catch(() => null);
 }
 
-export async function fetchStats(): Promise<{ success: boolean; data: OverviewStats }> {
-  const res = await fetch(`${BASE_URL}/api/v1/stats/overview`);
-  return res.json();
+export async function fetchStats(): Promise<OverviewStats | null> {
+  return safeFetch<OverviewStats>(`${BASE_URL}/api/v1/stats/overview`).catch(() => null);
 }
 
 export async function approveIssue(id: string) {

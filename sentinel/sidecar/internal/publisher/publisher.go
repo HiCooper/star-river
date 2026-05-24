@@ -103,7 +103,7 @@ func (p *Publisher) Run(entries <-chan tailer.ErrorEntry, done chan<- struct{}) 
 				flush()
 				return
 			}
-			batch = append(batch, entry)
+			batch = append(batch, entry); if len(batch) > 100 { log.Printf("[sidecar] batch overflow, dropping oldest"); batch = batch[1:] }
 			if len(batch) >= 10 {
 				if flush() {
 					batch = batch[:0]

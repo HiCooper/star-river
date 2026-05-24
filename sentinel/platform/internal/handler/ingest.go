@@ -76,8 +76,11 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 			continue
 		}
 
-		// Re-read occurrence_count after upsert to get accurate value
-		h.db.Model(&es).Select("occurrence_count").Scan(&es.OccurrenceCount)
+		// Re-read occurrence_count scoped to this specific row
+		h.db.Model(&model.ErrorSignature{}).
+			Where("id = ?", es.ID).
+			Select("occurrence_count").
+			Scan(&es.OccurrenceCount)
 
 		actualCount++
 		h.maybeCreateIssue(&es, &req)
@@ -108,7 +111,7 @@ func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestE
 			return
 		}
 
-		h.db.Create(&model.IssueTimeline{
+		_ = h.db.Create(&model.IssueTimeline{
 			IssueID:     issue.ID,
 			EventType:   "created",
 			Description: fmt.Sprintf("Issue auto-created from error signature %s", sig.Signature[:8]),

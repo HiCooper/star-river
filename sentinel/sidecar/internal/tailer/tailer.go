@@ -12,7 +12,7 @@ type ErrorEntry struct {
 	Level      string `json:"level"`
 	ErrorCode  string `json:"error_code"`
 	Message    string `json:"message"`
-	StackTrace string `json:"stack"`
+	StackTrace string `json:"stack_trace"`
 	TraceID    string `json:"trace_id"`
 	Handler    string `json:"handler"`
 	File       string `json:"file"`

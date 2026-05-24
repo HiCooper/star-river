@@ -77,7 +77,7 @@ func (h *IssueHandler) ApproveIssue(c *gin.Context) {
 		return
 	}
 
-	h.db.Create(&model.IssueTimeline{
+	_ = h.db.Create(&model.IssueTimeline{
 		IssueID:     issue.ID,
 		EventType:   "review_approved",
 		Description: "Issue approved for auto-fix",
@@ -102,7 +102,7 @@ func (h *IssueHandler) RejectIssue(c *gin.Context) {
 		return
 	}
 
-	h.db.Create(&model.IssueTimeline{
+	_ = h.db.Create(&model.IssueTimeline{
 		IssueID:     issue.ID,
 		EventType:   "review_rejected",
 		Description: "Issue rejected - requires manual fix",

@@ -18,7 +18,7 @@ curl -X POST https://your-domain.com/v1/payments/create \
   }'
 
 # 查询支付
-curl https://your-domain.com/v1/payments/{payment_id} \
+curl https://your-domain.com/v1/payments/{trade_no} \
   -H "X-API-Key: sk_your_api_key"
 ```
 
@@ -74,6 +74,7 @@ curl -X POST https://your-domain.com/v1/payments/create \
   "success": true,
   "data": {
     "payment_id": "58edcf81-75eb-420c-87c1-faa91587ded7",
+    "trade_no": "2024052400143520123456",
     "channel": "alipay",
     "amount": 9900,
     "currency": "CNY",
@@ -86,14 +87,15 @@ curl -X POST https://your-domain.com/v1/payments/create \
 
 | 响应字段 | 说明 |
 |------|------|
-| `payment_id` | 支付订单唯一 ID（UUID） |
+| `trade_no` | hydra-pay 22 位交易号，渠道 `out_trade_no` 即为此值 |
+| `payment_id` | 内部 UUID，仅用于 API 精确查询 |
 | `status` | `pending` → `processing` → `paid` / `failed` |
 | `qr_code_url` | Native 支付的扫码链接 |
 | `payment_url` | H5/App 支付的跳转链接 |
 
 ### 查询支付
 
-`GET /v1/payments/{payment_id}`
+`GET /v1/payments/{payment_id}`（payment_id 为创建返回的 UUID）
 
 **响应**：
 
@@ -102,6 +104,7 @@ curl -X POST https://your-domain.com/v1/payments/create \
   "success": true,
   "data": {
     "id": "58edcf81-...",
+    "trade_no": "2024052400143520123456",
     "user_id": "user_001",
     "amount": 9900,
     "currency": "CNY",
@@ -117,8 +120,9 @@ curl -X POST https://your-domain.com/v1/payments/create \
 
 | 字段 | 说明 |
 |------|------|
+| `trade_no` | hydra-pay 22 位交易号（对账/排障时使用） |
 | `status` | 支付状态：`pending` / `processing` / `paid` / `failed` / `refunded` |
-| `external_id` | 支付宝/微信的交易号（支付成功后才有） |
+| `external_id` | 支付宝 `trade_no` / 微信 `transaction_id`（支付成功后才有） |
 | `paid_at` | 支付时间（支付成功后才有） |
 
 ## 异步通知
@@ -131,6 +135,7 @@ curl -X POST https://your-domain.com/v1/payments/create \
 {
   "event": "payment.success",
   "payment_id": "58edcf81-...",
+  "trade_no": "2024052400143520123456",
   "user_id": "user_001",
   "plan_id": "premium_monthly",
   "amount": 9900,

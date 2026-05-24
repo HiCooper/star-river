@@ -1,0 +1,112 @@
+package publisher
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/hydra/sentinel-sidecar/internal/tailer"
+)
+
+type Publisher struct {
+	PlatformURL string
+	ServiceName string
+	client      *http.Client
+}
+
+func New(platformURL, serviceName string) *Publisher {
+	return &Publisher{
+		PlatformURL: platformURL,
+		ServiceName: serviceName,
+		client:      &http.Client{Timeout: 10 * time.Second},
+	}
+}
+
+type ingestReq struct {
+	Timestamp   string `json:"timestamp"`
+	Level       string `json:"level"`
+	ErrorCode   string `json:"error_code"`
+	Message     string `json:"message"`
+	StackTrace  string `json:"stack_trace"`
+	TraceID     string `json:"trace_id"`
+	Handler     string `json:"handler"`
+	File        string `json:"file"`
+	Line        int    `json:"line"`
+	ServiceName string `json:"service_name"`
+}
+
+func (p *Publisher) Publish(entries []tailer.ErrorEntry) error {
+	reqs := make([]ingestReq, len(entries))
+	for i, e := range entries {
+		reqs[i] = ingestReq{
+			Timestamp:  e.Timestamp,
+			Level:      e.Level,
+			ErrorCode:  e.ErrorCode,
+			Message:    e.Message,
+			StackTrace: e.StackTrace,
+			TraceID:    e.TraceID,
+			Handler:    e.Handler,
+			File:       e.File,
+			Line:       e.Line,
+			ServiceName: p.ServiceName,
+		}
+	}
+
+	body, err := json.Marshal(reqs)
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
+
+	resp, err := p.client.Post(
+		p.PlatformURL+"/api/v1/ingest/errors",
+		"application/json",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return fmt.Errorf("post: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (p *Publisher) Run(entries <-chan tailer.ErrorEntry) {
+	batch := make([]tailer.ErrorEntry, 0, 10)
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	flush := func() {
+		if len(batch) == 0 {
+			return
+		}
+		if err := p.Publish(batch); err != nil {
+			log.Printf("[sidecar] publish error: %v", err)
+		} else {
+			log.Printf("[sidecar] published %d errors", len(batch))
+		}
+		batch = batch[:0]
+	}
+
+	for {
+		select {
+		case entry, ok := <-entries:
+			if !ok {
+				flush()
+				return
+			}
+			batch = append(batch, entry)
+			if len(batch) >= 10 {
+				flush()
+			}
+		case <-ticker.C:
+			flush()
+		}
+	}
+}

@@ -89,6 +89,7 @@ export default withMermaid(defineConfig({
             { text: '支付路由', link: '/dev/pay/payment-router' },
             { text: '渠道适配器', link: '/dev/pay/channel-adapters' },
             { text: '回调处理流程', link: '/dev/pay/callback-flow' },
+            { text: '订单超时关单', link: '/dev/pay/order-sync' },
             { text: 'API 参考', link: '/dev/pay/api-reference' },
           ],
         },
@@ -125,6 +126,17 @@ export default withMermaid(defineConfig({
             { text: '监控告警', link: '/dev/deployment/monitoring' },
           ],
         },
+        {
+          text: '星河哨兵',
+          items: [
+            { text: '系统概览', link: '/dev/sentinel/' },
+            { text: '架构设计', link: '/dev/sentinel/architecture' },
+            { text: '服务接入指南', link: '/dev/sentinel/integration-guide' },
+            { text: 'sentinel.yaml 参考', link: '/dev/sentinel/sentinel-yaml-reference' },
+            { text: '安全规则配置', link: '/dev/sentinel/safety-rules' },
+            { text: '自动修复详解', link: '/dev/sentinel/auto-fix-workflow' },
+          ],
+        },
       ],
       '/knowledge/': [
         {
@@ -135,6 +147,7 @@ export default withMermaid(defineConfig({
             { text: '微信支付接入准备', link: '/knowledge/wechat-pay-setup' },
             { text: '市场调研与借鉴', link: '/knowledge/competitive-analysis' },
             { text: '服务商设计决策', link: '/knowledge/service-provider-design' },
+            { text: 'AI 时代支付愿景', link: '/knowledge/vision-ai-era-payments' },
             { text: '架构决策记录', link: '/knowledge/adr/' },
           ],
         },

@@ -74,3 +74,4 @@ $RECYCLE.BIN/
  backend/*/target/
  *.sql.bak
  docs/temp/
+sentinel/platform/server

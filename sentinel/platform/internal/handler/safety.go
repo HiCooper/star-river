@@ -21,7 +21,7 @@ func NewSafetyHandler(db *gorm.DB) *SafetyHandler {
 
 func (h *SafetyHandler) ListRules(c *gin.Context) {
 	var rules []model.SafetyRule
-	h.db.Order("priority DESC").Find(&rules)
+	_ = h.db.Order("priority DESC").Find(&rules)
 	response.Success(c, rules)
 }
 

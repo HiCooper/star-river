@@ -22,7 +22,7 @@ func NewServiceHandler(db *gorm.DB) *ServiceHandler {
 
 func (h *ServiceHandler) ListServices(c *gin.Context) {
 	var services []model.Service
-	h.db.Order("name ASC").Find(&services)
+	_ = h.db.Order("name ASC").Find(&services)
 	response.Success(c, services)
 }
 

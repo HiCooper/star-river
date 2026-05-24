@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
@@ -27,11 +29,21 @@ type OverviewStats struct {
 
 func (h *StatsHandler) Overview(c *gin.Context) {
 	var stats OverviewStats
-	h.db.Model(&model.Issue{}).Count(&stats.TotalIssues)
-	h.db.Model(&model.Issue{}).Where("status = 'open'").Count(&stats.OpenIssues)
-	h.db.Model(&model.Issue{}).Where("status = 'resolved'").Count(&stats.ResolvedIssues)
-	h.db.Model(&model.Issue{}).Where("severity = 'critical'").Count(&stats.CriticalIssues)
-	h.db.Model(&model.Issue{}).Where("severity = 'high'").Count(&stats.HighIssues)
-	h.db.Model(&model.Issue{}).Where("fix_type = 'auto'").Count(&stats.AutoFixed)
+	queries := []struct {
+		ptr *int64
+		q   *gorm.DB
+	}{
+		{&stats.TotalIssues, h.db.Model(&model.Issue{})},
+		{&stats.OpenIssues, h.db.Model(&model.Issue{}).Where("status = 'open'")},
+		{&stats.ResolvedIssues, h.db.Model(&model.Issue{}).Where("status = 'resolved'")},
+		{&stats.CriticalIssues, h.db.Model(&model.Issue{}).Where("severity = 'critical'")},
+		{&stats.HighIssues, h.db.Model(&model.Issue{}).Where("severity = 'high'")},
+		{&stats.AutoFixed, h.db.Model(&model.Issue{}).Where("fix_type = 'auto'")},
+	}
+	for _, item := range queries {
+		if err := item.q.Count(item.ptr).Error; err != nil {
+			log.Printf("[sentinel] stats query error: %v", err)
+		}
+	}
 	response.Success(c, stats)
 }

@@ -38,8 +38,8 @@ func (h *IssueHandler) ListIssues(c *gin.Context) {
 	page := parseIntParam(c, "page", 1)
 	pageSize := parseIntParam(c, "page_size", 20)
 	var total int64
-	query.Count(&total)
-	query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&issues)
+	_ = query.Count(&total)
+	_ = query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&issues)
 
 	response.SuccessWithPagination(c, issues, page, pageSize, int(total))
 }
@@ -57,7 +57,7 @@ func (h *IssueHandler) GetIssue(c *gin.Context) {
 func (h *IssueHandler) GetIssueTimeline(c *gin.Context) {
 	id := c.Param("id")
 	var timeline []model.IssueTimeline
-	h.db.Where("issue_id = ?", id).Order("created_at ASC").Find(&timeline)
+	_ = h.db.Where("issue_id = ?", id).Order("created_at ASC").Find(&timeline)
 	response.Success(c, timeline)
 }
 

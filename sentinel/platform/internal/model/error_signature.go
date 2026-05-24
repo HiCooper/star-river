@@ -9,8 +9,8 @@ import (
 
 type ErrorSignature struct {
 	ID              uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	ServiceName     string     `gorm:"index;not null" json:"service_name"`
-	Signature       string     `gorm:"uniqueIndex:idx_service_signature;not null" json:"signature"`
+	ServiceName     string     `gorm:"uniqueIndex:idx_service_sig;not null" json:"service_name"`
+	Signature       string     `gorm:"uniqueIndex:idx_service_sig;not null" json:"signature"`
 	ErrorCode       string     `json:"error_code"`
 	ErrorCategory   string     `json:"error_category"`
 	NormalizedMsg   string     `json:"normalized_msg"`

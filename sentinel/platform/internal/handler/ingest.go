@@ -25,15 +25,15 @@ func NewIngestHandler(db *gorm.DB) *IngestHandler {
 }
 
 type IngestErrorReq struct {
-	Timestamp string `json:"timestamp" binding:"required"`
-	Level     string `json:"level" binding:"required"`
-	ErrorCode string `json:"error_code"`
-	Message   string `json:"message" binding:"required"`
-	StackTrace string `json:"stack_trace"`
-	TraceID   string `json:"trace_id"`
-	Handler   string `json:"handler"`
-	File      string `json:"file"`
-	Line      int    `json:"line"`
+	Timestamp   string `json:"timestamp" binding:"required"`
+	Level       string `json:"level" binding:"required"`
+	ErrorCode   string `json:"error_code"`
+	Message     string `json:"message" binding:"required"`
+	StackTrace  string `json:"stack_trace"`
+	TraceID     string `json:"trace_id"`
+	Handler     string `json:"handler"`
+	File        string `json:"file"`
+	Line        int    `json:"line"`
 	ServiceName string `json:"service_name" binding:"required"`
 }
 
@@ -48,16 +48,26 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 		sig := computeSignature(req.ServiceName, req.ErrorCode, req.File, req.Message)
 		now := time.Now()
 
-		// Atomic upsert: insert or increment counter atomically
 		es := model.ErrorSignature{
-			ServiceName: req.ServiceName,
-			Signature:   sig,
+			ServiceName:     req.ServiceName,
+			Signature:       sig,
+			ErrorCode:       req.ErrorCode,
+			NormalizedMsg:   simplifyMsg(req.Message),
+			FirstFile:       req.File,
+			FirstFunction:   req.Handler,
+			FirstLine:       req.Line,
+			OccurrenceCount: 1,
+			FirstSeenAt:     now,
+			LastSeenAt:      now,
 		}
+
 		result := h.db.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "service_name"}, {Name: "signature"}},
 			DoUpdates: clause.Assignments(map[string]interface{}{
 				"occurrence_count": gorm.Expr("error_signatures.occurrence_count + 1"),
 				"last_seen_at":     now,
+				"error_code":       req.ErrorCode,
+				"normalized_msg":   simplifyMsg(req.Message),
 			}),
 		}).Create(&es)
 
@@ -65,17 +75,8 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 			continue
 		}
 
-		// On first insert, populate remaining fields
-		if result.RowsAffected > 0 {
-			h.db.Model(&es).Updates(map[string]interface{}{
-				"error_code":    req.ErrorCode,
-				"normalized_msg": simplifyMsg(req.Message),
-				"first_file":    req.File,
-				"first_function": req.Handler,
-				"first_line":    req.Line,
-				"first_seen_at": now,
-			})
-		}
+		// Re-read occurrence_count after upsert to get accurate value
+		h.db.Model(&es).Select("occurrence_count").Scan(&es.OccurrenceCount)
 
 		h.maybeCreateIssue(&es, &req)
 	}
@@ -84,10 +85,7 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 }
 
 func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestErrorReq) {
-	var currentCount int64
-	h.db.Model(&model.ErrorSignature{}).Where("id = ?", sig.ID).Select("occurrence_count").Scan(&currentCount)
-
-	if currentCount == 1 || currentCount%10 == 0 {
+	if sig.OccurrenceCount == 1 || sig.OccurrenceCount%10 == 0 {
 		var count int64
 		h.db.Model(&model.Issue{}).Where("signature_id = ? AND status NOT IN ('resolved','ignored')", sig.ID).Count(&count)
 		if count > 0 {

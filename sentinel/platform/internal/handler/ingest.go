@@ -2,6 +2,7 @@ package handler
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,9 +10,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/hydra/sentinel-service/internal/deepdiagnose"
 	"github.com/hydra/sentinel-service/internal/model"
 	"github.com/hydra/sentinel-service/internal/triage"
 	"github.com/hydra/sentinel-service/pkg/errors"
@@ -119,7 +122,6 @@ func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestE
 			Description: fmt.Sprintf("Issue auto-created from error signature %s", sig.Signature[:8]),
 		})
 
-		// Async AI triage
 		if h.triage != nil {
 			go h.enrichWithAI(issue, req)
 		}
@@ -127,6 +129,7 @@ func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestE
 }
 
 func (h *IngestHandler) enrichWithAI(issue model.Issue, req *IngestErrorReq) {
+	// Phase 1: DeepSeek 粗筛
 	result, err := h.triage.Classify(
 		req.ServiceName, req.ErrorCode, req.Message,
 		req.StackTrace, req.File, req.Handler, req.Line,
@@ -136,7 +139,7 @@ func (h *IngestHandler) enrichWithAI(issue model.Issue, req *IngestErrorReq) {
 		return
 	}
 
-	err = h.db.Model(&issue).Updates(map[string]interface{}{
+	h.db.Model(&issue).Updates(map[string]interface{}{
 		"ai_category":        result.Category,
 		"ai_severity":        result.Severity,
 		"ai_auto_fixable":    result.AutoFixable,
@@ -146,21 +149,58 @@ func (h *IngestHandler) enrichWithAI(issue model.Issue, req *IngestErrorReq) {
 		"ai_fix_suggestion":  result.FixSuggestion,
 		"severity":           result.Severity,
 		"category":           result.Category,
-	}).Error
-
-	if err != nil {
-		log.Printf("[sentinel] failed to update AI result for issue %s: %v", issue.ID, err)
-		return
-	}
+	})
 
 	_ = h.db.Create(&model.IssueTimeline{
 		IssueID:     issue.ID,
 		EventType:   "ai_triaged",
-		Description: fmt.Sprintf("AI classified as %s/%s (confidence: %d%%)",
+		Description: fmt.Sprintf("AI classified as %s/%s (conf: %d%%)",
 			result.Category, result.Severity, result.Confidence),
 	})
 
 	log.Printf("[sentinel] AI enriched issue %s: %s/%s", issue.ID, result.Category, result.Severity)
+
+	// Phase 2: Claude Code 精诊 (high/critical or auto_fixable)
+	needsDeep := result.Severity == "high" || result.Severity == "critical" || result.AutoFixable == "yes"
+	if !needsDeep {
+		return
+	}
+
+	var svc model.Service
+	if err := h.db.Where("name = ?", req.ServiceName).First(&svc).Error; err != nil {
+		log.Printf("[sentinel] service %s not found for deep diagnosis", req.ServiceName)
+		return
+	}
+
+	log.Printf("[sentinel] triggering deep diagnosis for issue %s", issue.ID)
+	diagnoseInput := deepdiagnose.DiagnoseInput{
+		ServiceName: req.ServiceName,
+		ErrorCode:   req.ErrorCode,
+		Message:     req.Message,
+		StackTrace:  req.StackTrace,
+		File:        req.File,
+		Line:        req.Line,
+		Handler:     req.Handler,
+		RepoPath:    svc.RepoLocalPath,
+		DocsPath:    svc.DocsPath,
+	}
+
+	deepResult, err := deepdiagnose.Diagnose(diagnoseInput)
+	if err != nil {
+		log.Printf("[sentinel] deep diagnosis failed for issue %s: %v", issue.ID, err)
+		return
+	}
+
+	deepJSON, _ := json.Marshal(deepResult)
+	h.db.Model(&issue).Update("deep_diagnosis", datatypes.JSON(deepJSON))
+
+	_ = h.db.Create(&model.IssueTimeline{
+		IssueID:     issue.ID,
+		EventType:   "deep_diagnosed",
+		Description: fmt.Sprintf("Claude Code 精诊完成 (conf: %d%%)", deepResult.Confidence),
+	})
+
+	log.Printf("[sentinel] deep diagnosis completed for issue %s", issue.ID)
 }
 
 func computeSignature(service, errorCode, file, message string) string {

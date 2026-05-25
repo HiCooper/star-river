@@ -1,9 +1,24 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8082';
 
+export interface Service {
+  id: string;
+  name: string;
+  display_name: string;
+  repo_url: string;
+  repo_branch: string;
+  language: string;
+  owner_team: string;
+  status: string;
+  repo_local_path: string;
+  docs_path: string;
+}
+
 export interface Issue {
   id: string;
   service_name: string;
+  signature_id: string;
   title: string;
+  description: string;
   category: string;
   severity: string;
   status: string;
@@ -14,25 +29,14 @@ export interface Issue {
   ai_fix_suggestion: string;
   ai_suspected_file: string;
   ai_suspected_line: number;
+  deep_diagnosis: any;
   fix_type: string;
   fix_pr_url: string;
+  fix_status: string;
   review_status: string;
   first_seen_at: string;
   last_seen_at: string;
   created_at: string;
-}
-
-export interface Pagination {
-  page: number;
-  page_size: number;
-  total: number;
-  total_pages: number;
-}
-
-export interface IssueListResponse {
-  success: boolean;
-  data: Issue[];
-  pagination: Pagination;
 }
 
 export interface OverviewStats {
@@ -51,30 +55,29 @@ function buildQuery(params: Record<string, string>): string {
   return s ? `?${s}` : '';
 }
 
-async function safeFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, opts);
+export async function fetchServices(): Promise<Service[]> {
+  const res = await fetch(`${BASE_URL}/api/v1/services`);
   const json = await res.json();
-  if (!json.success) {
-    throw new Error(json.error?.message || 'API request failed');
-  }
-  return json.data as T;
+  return json.success ? json.data : [];
 }
 
-export async function fetchIssues(params: Record<string, string>): Promise<{ data: Issue[]; pagination: Pagination }> {
+export async function fetchIssues(params: Record<string, string>): Promise<{ data: Issue[]; pagination: any }> {
   const res = await fetch(`${BASE_URL}/api/v1/issues${buildQuery(params)}`);
   const json = await res.json();
-  if (!json.success) {
-    return { data: [], pagination: { page: 1, page_size: 20, total: 0, total_pages: 0 } };
-  }
+  if (!json.success) return { data: [], pagination: { page: 1, page_size: 20, total: 0, total_pages: 0 } };
   return { data: json.data, pagination: json.pagination };
 }
 
 export async function fetchIssue(id: string): Promise<Issue | null> {
-  return safeFetch<Issue>(`${BASE_URL}/api/v1/issues/${id}`).catch(() => null);
+  const res = await fetch(`${BASE_URL}/api/v1/issues/${id}`);
+  const json = await res.json();
+  return json.success ? json.data : null;
 }
 
 export async function fetchStats(): Promise<OverviewStats | null> {
-  return safeFetch<OverviewStats>(`${BASE_URL}/api/v1/stats/overview`).catch(() => null);
+  const res = await fetch(`${BASE_URL}/api/v1/stats/overview`);
+  const json = await res.json();
+  return json.success ? json.data : null;
 }
 
 export async function approveIssue(id: string) {

@@ -18,6 +18,8 @@ type Service struct {
 	OwnerTeam   string         `json:"owner_team"`
 	Status      string         `gorm:"default:active" json:"status"`
 	ConfigJSON  datatypes.JSON `json:"config_json"`
+	RepoLocalPath string         `json:"repo_local_path"`
+	DocsPath      string         `json:"docs_path"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 }

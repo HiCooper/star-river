@@ -5,6 +5,28 @@ import { Issue, fetchIssue, approveIssue, rejectIssue } from '../../lib/api';
 
 const sevColor: Record<string, string> = { critical: '#EF4444', high: '#F97316', medium: '#EAB308', low: '#22C55E' };
 
+function DeepDiagnosis({ issue }: { issue: Issue }) {
+  if (!issue.deep_diagnosis) return null;
+  try {
+    const d = typeof issue.deep_diagnosis === 'string' ? JSON.parse(issue.deep_diagnosis) : issue.deep_diagnosis;
+    return (
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--info)', borderRadius: 'var(--radius)', padding: 18, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--info)', fontFamily: 'var(--font-mono)' }}>Claude Code 精诊分析</div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>根因分析</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.root_cause || d.RootCause || '-'}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>修复方案</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.fix_plan || d.FixPlan || '-'}</div>
+        </div>
+      </div>
+    );
+  } catch {
+    return null;
+  }
+}
+
 export default function IssueDetail() {
   const router = useRouter();
   const { id } = router.query;
@@ -55,24 +77,7 @@ export default function IssueDetail() {
           </div>
         )}
 
-        {issue.deep_diagnosis && (() => {
-          try {
-            const d = typeof issue.deep_diagnosis === 'string' ? JSON.parse(issue.deep_diagnosis) : issue.deep_diagnosis;
-            return (
-              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--info)', borderRadius: 'var(--radius)', padding: 18, marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--info)', fontFamily: 'var(--font-mono)' }}>Claude Code 精诊分析</div>
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>根因分析</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.root_cause || d.RootCause || '-'}</div>
-                </div>
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>修复方案</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.fix_plan || d.FixPlan || '-'}</div>
-                </div>
-              </div>
-            );
-          } catch { return null; }
-        })()}
+        <DeepDiagnosis issue={issue} />
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={async () => { await approveIssue(issue.id); router.reload(); }} style={{ padding: '8px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>批准自动修复</button>

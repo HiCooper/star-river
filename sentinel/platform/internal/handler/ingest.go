@@ -23,8 +23,8 @@ import (
 )
 
 type IngestHandler struct {
-	db      *gorm.DB
-	triage  *triage.Client
+	db     *gorm.DB
+	triage *triage.Client
 }
 
 func NewIngestHandler(db *gorm.DB, triageClient *triage.Client) *IngestHandler {
@@ -44,6 +44,13 @@ type IngestErrorReq struct {
 	Line        int    `json:"line"`
 	ServiceName string `json:"service_name" binding:"required"`
 }
+
+// Threshold: create issue only when 10+ occurrences in 5 minutes, or on every 50th occurrence
+const (
+	thresholdCount   = 10
+	thresholdWindow  = 5 * time.Minute
+	reopenWindow     = 24 * time.Hour
+)
 
 func (h *IngestHandler) IngestErrors(c *gin.Context) {
 	var reqs []IngestErrorReq
@@ -90,47 +97,88 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 			Scan(&es.OccurrenceCount)
 
 		actualCount++
+
+		// Fix tracking: reopen if recently resolved
+		h.maybeReopen(&es, &req)
+
+		// Threshold-based issue creation
 		h.maybeCreateIssue(&es, &req)
 	}
 
 	response.Success(c, gin.H{"ingested": actualCount})
 }
 
-func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestErrorReq) {
-	if sig.OccurrenceCount == 1 || sig.OccurrenceCount%10 == 0 {
-		var count int64
-		h.db.Model(&model.Issue{}).Where("signature_id = ? AND status NOT IN ('resolved','ignored')", sig.ID).Count(&count)
-		if count > 0 {
-			return
-		}
-
-		issue := model.Issue{
-			ServiceName: sig.ServiceName,
-			SignatureID: &sig.ID,
-			Title:       fmt.Sprintf("[%s] %s: %s", sig.ServiceName, sig.ErrorCode, req.Message),
-			Category:    "unknown",
-			Severity:    "medium",
-			Status:      "open",
-			FirstSeenAt: sig.FirstSeenAt,
-			LastSeenAt:  sig.LastSeenAt,
-		}
-		if err := h.db.Create(&issue).Error; err != nil {
-			return
-		}
-
+func (h *IngestHandler) maybeReopen(sig *model.ErrorSignature, req *IngestErrorReq) {
+	var issue model.Issue
+	err := h.db.Where("signature_id = ? AND status = ?", sig.ID, "resolved").
+		Order("resolved_at DESC").First(&issue).Error
+	if err != nil {
+		return
+	}
+	if issue.ResolvedAt != nil && time.Since(*issue.ResolvedAt) < reopenWindow {
+		log.Printf("[sentinel] reopening issue %s — error recurred within 24h", issue.ID)
+		h.db.Model(&issue).Updates(map[string]interface{}{
+			"status":      "open",
+			"resolved_at": nil,
+			"fix_status":  "",
+		})
 		_ = h.db.Create(&model.IssueTimeline{
 			IssueID:     issue.ID,
-			EventType:   "created",
-			Description: fmt.Sprintf("Issue auto-created from error signature %s", sig.Signature[:8]),
+			EventType:   "reopened",
+			Description: fmt.Sprintf("修复后 24h 内错误复现 (occurrence #%d)", sig.OccurrenceCount),
 		})
-
+		// Re-triage
 		if h.triage != nil {
 			go h.enrichWithAI(issue, req)
+		}
+	}
+}
 
-		go func() {
-			url := getSetting(h.db, "notify_dingtalk_url")
-			notify.IssueCreated(url, issue.ID.String(), req.ServiceName, issue.Title, issue.Severity, issue.Category, issue.Severity)
-		}()		}
+func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestErrorReq) {
+	// Check if within threshold window
+	inWindow := time.Since(sig.FirstSeenAt) < thresholdWindow
+	shouldCreate := sig.OccurrenceCount == thresholdCount || // exactly at threshold
+		sig.OccurrenceCount%50 == 0 || // every 50th for persistent issues
+		(!inWindow && sig.OccurrenceCount >= thresholdCount) // first error after window
+
+	if !shouldCreate {
+		return
+	}
+
+	var count int64
+	h.db.Model(&model.Issue{}).Where("signature_id = ? AND status NOT IN ('resolved','ignored')", sig.ID).Count(&count)
+	if count > 0 {
+		return
+	}
+
+	issue := model.Issue{
+		ServiceName: sig.ServiceName,
+		SignatureID: &sig.ID,
+		Title:       fmt.Sprintf("[%s] %s: %s", sig.ServiceName, sig.ErrorCode, req.Message),
+		Category:    "unknown",
+		Severity:    "medium",
+		Status:      "open",
+		FirstSeenAt: sig.FirstSeenAt,
+		LastSeenAt:  sig.LastSeenAt,
+	}
+	if err := h.db.Create(&issue).Error; err != nil {
+		return
+	}
+
+	_ = h.db.Create(&model.IssueTimeline{
+		IssueID:     issue.ID,
+		EventType:   "created",
+		Description: fmt.Sprintf("Issue auto-created (occurrence #%d, threshold=%d/5min)", sig.OccurrenceCount, thresholdCount),
+	})
+
+	// Notify
+	go func() {
+		url := getSetting(h.db, "notify_dingtalk_url")
+		notify.IssueCreated(url, issue.ID.String(), req.ServiceName, issue.Title, issue.Severity, issue.Category, issue.Severity)
+	}()
+
+	if h.triage != nil {
+		go h.enrichWithAI(issue, req)
 	}
 }
 
@@ -145,48 +193,31 @@ func (h *IngestHandler) enrichWithAI(issue model.Issue, req *IngestErrorReq) {
 	}
 
 	h.db.Model(&issue).Updates(map[string]interface{}{
-		"ai_category":       result.Category,
-		"ai_severity":       result.Severity,
-		"ai_auto_fixable":   result.AutoFixable,
-		"ai_confidence":     result.Confidence,
-		"ai_suspected_file": result.SuspectedFile,
-		"ai_suspected_line": result.SuspectedLine,
+		"ai_category": result.Category, "ai_severity": result.Severity,
+		"ai_auto_fixable": result.AutoFixable, "ai_confidence": result.Confidence,
+		"ai_suspected_file": result.SuspectedFile, "ai_suspected_line": result.SuspectedLine,
 		"ai_fix_suggestion": result.FixSuggestion,
-		"severity":          result.Severity,
-		"category":          result.Category,
+		"severity": result.Severity, "category": result.Category,
 	})
 
 	_ = h.db.Create(&model.IssueTimeline{
-		IssueID:     issue.ID,
-		EventType:   "ai_triaged",
+		IssueID: issue.ID, EventType: "ai_triaged",
 		Description: fmt.Sprintf("AI classified as %s/%s (conf: %d%%)", result.Category, result.Severity, result.Confidence),
 	})
 
 	log.Printf("[sentinel] AI enriched issue %s: %s/%s", issue.ID, result.Category, result.Severity)
 
 	needsDeep := result.Severity == "high" || result.Severity == "critical" || result.AutoFixable == "yes"
-	if !needsDeep {
-		return
-	}
+	if !needsDeep { return }
 
 	var svc model.Service
-	if err := h.db.Where("name = ?", req.ServiceName).First(&svc).Error; err != nil {
-		log.Printf("[sentinel] service %s not found for deep diagnosis", req.ServiceName)
-		return
-	}
+	if err := h.db.Where("name = ?", req.ServiceName).First(&svc).Error; err != nil { return }
 
-	log.Printf("[sentinel] triggering deep diagnosis for issue %s", issue.ID)
 	diagnoseInput := deepdiagnose.DiagnoseInput{
-		ServiceName: req.ServiceName,
-		ErrorCode:   req.ErrorCode,
-		Message:     req.Message,
-		StackTrace:  req.StackTrace,
-		RawLog:      req.RawLog,
-		File:        req.File,
-		Line:        req.Line,
-		Handler:     req.Handler,
-		RepoPath:    svc.RepoLocalPath,
-		DocsPath:    svc.DocsPath,
+		ServiceName: req.ServiceName, ErrorCode: req.ErrorCode, Message: req.Message,
+		StackTrace: req.StackTrace, RawLog: req.RawLog,
+		File: req.File, Line: req.Line, Handler: req.Handler,
+		RepoPath: svc.RepoLocalPath, DocsPath: svc.DocsPath,
 	}
 
 	deepResult, err := deepdiagnose.Diagnose(diagnoseInput)
@@ -199,12 +230,9 @@ func (h *IngestHandler) enrichWithAI(issue model.Issue, req *IngestErrorReq) {
 	h.db.Model(&issue).Update("deep_diagnosis", datatypes.JSON(deepJSON))
 
 	_ = h.db.Create(&model.IssueTimeline{
-		IssueID:     issue.ID,
-		EventType:   "deep_diagnosed",
+		IssueID: issue.ID, EventType: "deep_diagnosed",
 		Description: fmt.Sprintf("Claude Code 精诊完成 (conf: %d%%)", deepResult.Confidence),
 	})
-
-	log.Printf("[sentinel] deep diagnosis completed for issue %s", issue.ID)
 }
 
 func computeSignature(service, errorCode, file, message string) string {

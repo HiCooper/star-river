@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/hydra/sentinel-sidecar/internal/config"
 	"github.com/hydra/sentinel-sidecar/internal/publisher"
@@ -11,29 +13,35 @@ import (
 
 func main() {
 	cfg := config.Load()
-	log.Printf("[sidecar] starting for service: %s", cfg.ServiceName)
+	log.Printf("[sidecar] starting for service: %s (mode: %s)", cfg.ServiceName, cfg.Mode())
 
-	entries := make(chan tailer.ErrorEntry, 100)
+	entries := make(chan tailer.ErrorEntry, 200)
 	pub := publisher.New(cfg.PlatformURL, cfg.ServiceName)
 	done := make(chan struct{})
 
 	go pub.Run(entries, done)
 
-	var reader *os.File
-	if cfg.LogPath != "" {
-		f, err := os.Open(cfg.LogPath)
-		if err != nil {
-			log.Printf("[sidecar] failed to open %s: %v, falling back to stdin", cfg.LogPath, err)
-			reader = os.Stdin
-		} else {
-			defer f.Close()
-			reader = f
-		}
+	stop := make(chan struct{})
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigCh
+		log.Println("[sidecar] received signal, shutting down...")
+		close(stop)
+	}()
+
+	if cfg.LogPath != "" && cfg.LogPath != "-" {
+		// File following mode (tail -f)
+		tailer.TailFile(cfg.LogPath, entries, stop)
 	} else {
-		reader = os.Stdin
+		// Stdin pipe mode
+		go func() {
+			<-stop
+		}()
+		tailer.Tail(os.Stdin, entries)
 	}
 
-	tailer.Tail(reader, entries)
 	<-done
 	log.Println("[sidecar] exiting")
 }

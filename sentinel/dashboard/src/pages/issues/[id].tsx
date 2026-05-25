@@ -22,9 +22,7 @@ function DeepDiagnosis({ issue }: { issue: Issue }) {
         </div>
       </div>
     );
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 export default function IssueDetail() {
@@ -45,6 +43,12 @@ export default function IssueDetail() {
   return (
     <Layout>
       <div style={{ padding: '24px 28px', maxWidth: 960 }}>
+        <a href="/" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          color: 'var(--accent)', fontSize: 13, textDecoration: 'none',
+          fontFamily: 'var(--font-mono)', marginBottom: 20,
+        }}>← 返回 Issue 列表</a>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <span style={{ padding: '4px 12px', borderRadius: 4, fontSize: 13, fontWeight: 600, background: `${sev}22`, color: sev, fontFamily: 'var(--font-mono)' }}>
             {issue.severity.toUpperCase()}

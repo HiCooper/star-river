@@ -9,7 +9,6 @@ export default function ServicesPage() {
   const [editing, setEditing] = useState<Service | null>(null);
   const [repoPath, setRepoPath] = useState('');
   const [docsPath, setDocsPath] = useState('');
-  const [saved, setSaved] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDisplay, setNewDisplay] = useState('');
@@ -23,7 +22,6 @@ export default function ServicesPage() {
     setEditing(svc);
     setRepoPath(svc.repo_local_path || '');
     setDocsPath(svc.docs_path || '');
-    setSaved(false);
   };
 
   const saveConfig = async () => {
@@ -32,9 +30,8 @@ export default function ServicesPage() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ repo_local_path: repoPath, docs_path: docsPath }),
     });
-    setSaved(true);
+    setEditing(null);
     fetchServices().then(setServices);
-    setTimeout(() => setSaved(false), 2000);
   };
 
   const addService = async () => {
@@ -131,7 +128,6 @@ export default function ServicesPage() {
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <button onClick={saveConfig} style={{ padding: '6px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>保存</button>
                     <button onClick={() => setEditing(null)} style={{ padding: '6px 20px', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>取消</button>
-                    {saved && <span style={{ fontSize: 12, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>已保存</span>}
                   </div>
                 </div>
               )}

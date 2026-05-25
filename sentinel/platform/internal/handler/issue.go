@@ -98,7 +98,7 @@ func (h *IssueHandler) ApproveIssue(c *gin.Context) {
 			h.autofix.Run(issue, svc)
 
 			url := getSetting(h.db, "notify_dingtalk_url")
-			notify.IssueApproved(url, issue.ServiceName, issue.Title)
+			notify.IssueApproved(url, issue.ID.String(), issue.ServiceName, issue.Title)
 		}()
 	}
 

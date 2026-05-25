@@ -46,7 +46,7 @@ func SendDingtalk(webhookURL, title, text string) {
 	log.Printf("[notify] dingtalk sent: %s", title)
 }
 
-func IssueCreated(webhookURL, service, title, severity, aiCategory, aiSeverity string) {
+func IssueCreated(webhookURL, issueID, service, title, severity, aiCategory, aiSeverity string) {
 	if webhookURL == "" {
 		return
 	}
@@ -57,11 +57,11 @@ func IssueCreated(webhookURL, service, title, severity, aiCategory, aiSeverity s
 - **AI 分类**: %s / %s
 - **时间**: %s
 
-[查看详情](http://localhost:3000)`, title, service, severity, aiCategory, aiSeverity, time.Now().Format("15:04:05"))
+[查看详情](http://localhost:3000/issues/%s)`, title, service, severity, aiCategory, aiSeverity, issueID, time.Now().Format("15:04:05"))
 	SendDingtalk(webhookURL, fmt.Sprintf("[%s] %s", service, title), text)
 }
 
-func IssueApproved(webhookURL, service, title string) {
+func IssueApproved(webhookURL, issueID, service, title string) {
 	if webhookURL == "" {
 		return
 	}
@@ -72,6 +72,6 @@ func IssueApproved(webhookURL, service, title string) {
 - **时间**: %s
 - **状态**: 自动修复 Pipeline 已启动
 
-[查看详情](http://localhost:3000)`, service, title, time.Now().Format("15:04:05"))
+[查看详情](http://localhost:3000/issues/%s)`, service, title, issueID, time.Now().Format("15:04:05"))
 	SendDingtalk(webhookURL, fmt.Sprintf("✅ [%s] 已批准", service), text)
 }

@@ -129,7 +129,7 @@ func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestE
 
 		go func() {
 			url := getSetting(h.db, "notify_dingtalk_url")
-			notify.IssueCreated(url, req.ServiceName, issue.Title, issue.Severity, issue.Category, issue.Severity)
+			notify.IssueCreated(url, issue.ID.String(), req.ServiceName, issue.Title, issue.Severity, issue.Category, issue.Severity)
 		}()		}
 	}
 }

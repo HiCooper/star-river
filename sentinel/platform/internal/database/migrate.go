@@ -13,5 +13,6 @@ func RunMigrations(db *gorm.DB) error {
 		&model.IssueTimeline{},
 		&model.FixHistory{},
 		&model.SafetyRule{},
+		&model.Setting{},
 	)
 }

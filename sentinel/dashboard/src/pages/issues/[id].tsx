@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../components/Layout';
+import TerminalViewer from '../../components/Terminal';
 import { Issue, fetchIssue, approveIssue, rejectIssue } from '../../lib/api';
 
 const sevColor: Record<string, string> = { critical: '#EF4444', high: '#F97316', medium: '#EAB308', low: '#22C55E' };
@@ -11,28 +12,19 @@ function DeepDiagnosis({ issue }: { issue: Issue }) {
     const d = typeof issue.deep_diagnosis === 'string' ? JSON.parse(issue.deep_diagnosis) : issue.deep_diagnosis;
     const raw = d.raw_output || d.RawOutput || '';
     return (
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--info)', borderRadius: 'var(--radius)', padding: 18, marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--info)', fontFamily: 'var(--font-mono)' }}>Claude Code 精诊分析</div>
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>根因分析</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.root_cause || d.RootCause || '-'}</div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--info)', borderRadius: 'var(--radius) 8px 0 0', padding: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--info)', fontFamily: 'var(--font-mono)' }}>Claude Code 精诊分析</div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>根因分析</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.root_cause || d.RootCause || '-'}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>修复方案</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.fix_plan || d.FixPlan || '-'}</div>
+          </div>
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>修复方案</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.fix_plan || d.FixPlan || '-'}</div>
-        </div>
-        {raw && (
-          <details style={{ marginTop: 12 }}>
-            <summary style={{ fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
-              Claude Code 控制台输出
-            </summary>
-            <pre style={{
-              background: '#0a0a0a', color: '#94A3B8', padding: '10px 14px',
-              borderRadius: 4, marginTop: 8, overflow: 'auto', maxHeight: 400,
-              fontSize: 11, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-            }}>{raw}</pre>
-          </details>
-        )}
+        {raw && <TerminalViewer title="claude · 精诊会话" content={raw} />}
       </div>
     );
   } catch { return null; }
@@ -45,48 +37,19 @@ function FixLog({ issue }: { issue: Issue }) {
     const steps: any[] = log.steps || [];
     if (steps.length === 0) return null;
 
-    return (
-      <div style={{ background: '#0a0a0a', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 16, marginBottom: 16, fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>执行日志</span>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Pipeline Console</span>
-        </div>
-        {steps.map((step: any, idx: number) => (
-          <div key={idx} style={{ marginBottom: idx < steps.length - 1 ? 10 : 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
-                background: step.status === 'ok' ? '#22C55E' : step.status === 'failed' ? '#EF4444' : '#F59E0B',
-              }} />
-              <span style={{ color: step.status === 'ok' ? '#22C55E' : step.status === 'failed' ? '#EF4444' : '#F59E0B', fontWeight: 500 }}>
-                {step.step}
-              </span>
-              <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
-                {step.status === 'ok' ? 'OK' : step.status === 'failed' ? 'FAILED' : '...'}
-              </span>
-            </div>
-            {step.output && (
-              <pre style={{
-                background: '#111', color: '#94A3B8', padding: '8px 12px', borderRadius: 4,
-                margin: '4px 0 0 16px', overflow: 'auto', maxHeight: 300, fontSize: 11,
-                lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-                borderLeft: step.status === 'failed' ? '2px solid #EF4444' : '2px solid #334155',
-              }}>
-                {step.output.slice(0, 3000)}
-              </pre>
-            )}
-            {step.error && (
-              <pre style={{
-                background: '#1a0000', color: '#EF4444', padding: '6px 12px', borderRadius: 4,
-                margin: '4px 0 0 16px', fontSize: 11, whiteSpace: 'pre-wrap',
-              }}>
-                {step.error}
-              </pre>
-            )}
-          </div>
-        ))}
-      </div>
-    );
+    const combinedOutput = steps.map((s: any) => {
+      const status = s.status === 'ok' ? '✓' : s.status === 'failed' ? '✗' : '…';
+      let out = `\x1b[1m${status} ${s.step}\x1b[0m`;
+      if (s.status === 'failed') out += ` \x1b[31mFAILED\x1b[0m`;
+      else if (s.status === 'ok') out += ` \x1b[32mOK\x1b[0m`;
+      out += '\r\n';
+      if (s.output) out += s.output.trimEnd() + '\r\n';
+      if (s.error) out += `\x1b[31m${s.error}\x1b[0m\r\n`;
+      out += '\r\n';
+      return out;
+    }).join('');
+
+    return <TerminalViewer title="pipeline · 执行日志" content={combinedOutput} />;
   } catch { return null; }
 }
 

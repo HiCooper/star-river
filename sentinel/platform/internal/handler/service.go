@@ -35,6 +35,35 @@ func (h *ServiceHandler) GetService(c *gin.Context) {
 	response.Success(c, svc)
 }
 
+type CreateServiceReq struct {
+	Name        string `json:"name" binding:"required"`
+	DisplayName string `json:"display_name"`
+	RepoURL     string `json:"repo_url"`
+	Language    string `json:"language"`
+	OwnerTeam   string `json:"owner_team"`
+}
+
+func (h *ServiceHandler) CreateService(c *gin.Context) {
+	var req CreateServiceReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, errors.ValidationError, err.Error())
+		return
+	}
+
+	svc := model.Service{
+		Name:        req.Name,
+		DisplayName: req.DisplayName,
+		RepoURL:     req.RepoURL,
+		Language:    req.Language,
+		OwnerTeam:   req.OwnerTeam,
+	}
+	if err := h.db.Create(&svc).Error; err != nil {
+		response.Error(c, http.StatusInternalServerError, errors.InternalError, "Failed to create service")
+		return
+	}
+	response.Success(c, svc)
+}
+
 type UpdateServiceConfigReq struct {
 	RepoLocalPath string `json:"repo_local_path"`
 	DocsPath      string `json:"docs_path"`

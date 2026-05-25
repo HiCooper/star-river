@@ -46,6 +46,7 @@ func Setup(cfg *config.Config, db *gorm.DB) *gin.Engine {
 		services := v1.Group("/services")
 		{
 			services.GET("", serviceHandler.ListServices)
+			services.POST("", serviceHandler.CreateService)
 			services.GET("/:name", serviceHandler.GetService)
 			services.PUT("/:name/config", serviceHandler.UpdateServiceConfig)
 		}

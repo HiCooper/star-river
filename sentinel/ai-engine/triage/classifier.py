@@ -52,7 +52,7 @@ async def _classify_one(client: httpx.AsyncClient, api_key: str, e: ErrorInput) 
             suspected_file=parsed.get("suspected_file"),
             suspected_line=parsed.get("suspected_line"),
             fix_suggestion=parsed.get("fix_suggestion", ""),
-            confidence=parsed.get("confidence", 50),
+            confidence=int(float(parsed.get("confidence", 50))),
         )
     except json.JSONDecodeError:
         return TriageResult(

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 
 
@@ -24,6 +24,14 @@ class TriageResult(BaseModel):
     suspected_line: Optional[int] = None
     fix_suggestion: str
     confidence: int
+
+    @field_validator('confidence', mode='before')
+    @classmethod
+    def coerce_confidence(cls, v):
+        val = float(v)
+        if val <= 1.0:
+            val = val * 100
+        return int(val)
 
 
 class TriageResponse(BaseModel):

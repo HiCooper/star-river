@@ -39,7 +39,6 @@ type CreateServiceReq struct {
 	Name        string `json:"name" binding:"required"`
 	DisplayName string `json:"display_name"`
 	RepoURL     string `json:"repo_url"`
-	Language    string `json:"language"`
 	OwnerTeam   string `json:"owner_team"`
 }
 
@@ -54,7 +53,6 @@ func (h *ServiceHandler) CreateService(c *gin.Context) {
 		Name:        req.Name,
 		DisplayName: req.DisplayName,
 		RepoURL:     req.RepoURL,
-		Language:    req.Language,
 		OwnerTeam:   req.OwnerTeam,
 	}
 	if err := h.db.Create(&svc).Error; err != nil {

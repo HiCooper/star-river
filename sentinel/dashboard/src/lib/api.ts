@@ -6,7 +6,6 @@ export interface Service {
   display_name: string;
   repo_url: string;
   repo_branch: string;
-  language: string;
   owner_team: string;
   status: string;
   repo_local_path: string;

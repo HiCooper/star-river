@@ -14,7 +14,6 @@ type Service struct {
 	DisplayName string         `json:"display_name"`
 	RepoURL     string         `json:"repo_url"`
 	RepoBranch  string         `gorm:"default:main" json:"repo_branch"`
-	Language    string         `json:"language"`
 	OwnerTeam   string         `json:"owner_team"`
 	Status      string         `gorm:"default:active" json:"status"`
 	ConfigJSON  datatypes.JSON `json:"config_json"`

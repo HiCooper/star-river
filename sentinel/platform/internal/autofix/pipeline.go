@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,10 +27,10 @@ type FixLog struct {
 }
 
 type FixStep struct {
-	Step    string `json:"step"`
-	Status  string `json:"status"` // running, ok, failed
-	Output  string `json:"output"`
-	Error   string `json:"error,omitempty"`
+	Step   string `json:"step"`
+	Status string `json:"status"`
+	Output string `json:"output"`
+	Error  string `json:"error,omitempty"`
 }
 
 func NewPipeline(db *gorm.DB) *Pipeline {
@@ -37,12 +39,10 @@ func NewPipeline(db *gorm.DB) *Pipeline {
 
 func (p *Pipeline) Run(issue model.Issue, svc model.Service) {
 	log.Printf("[autofix] starting for issue %s: %s", issue.ID, issue.Title)
-
 	fixLog := &FixLog{Steps: []FixStep{}}
 
 	p.db.Model(&issue).Updates(map[string]interface{}{
-		"fix_type":   "auto",
-		"fix_status": "in_progress",
+		"fix_type": "auto", "fix_status": "in_progress",
 	})
 	p.timeline(issue.ID, "auto_fix_started", "Claude Code 自动修复启动")
 
@@ -51,7 +51,6 @@ func (p *Pipeline) Run(issue model.Issue, svc model.Service) {
 		p.failWithLog(issue.ID, fixLog, "repo_local_path not configured")
 		return
 	}
-
 	if issue.Severity == "critical" {
 		p.failWithLog(issue.ID, fixLog, "critical severity, requires manual review")
 		return
@@ -59,8 +58,8 @@ func (p *Pipeline) Run(issue model.Issue, svc model.Service) {
 
 	branchName := fmt.Sprintf("sentinel/auto-fix-%s", issue.ID.String()[:8])
 
-	// Step 1: git checkout
-	step := p.runCmd("git checkout", repoPath, "git", "fetch", "origin")
+	// git checkout
+	step := p.runCmd("git fetch", repoPath, "git", "fetch", "origin")
 	fixLog.Steps = append(fixLog.Steps, step)
 	p.runCmd("", repoPath, "git", "checkout", "main")
 	p.runCmd("", repoPath, "git", "pull", "origin", "main")
@@ -71,7 +70,7 @@ func (p *Pipeline) Run(issue model.Issue, svc model.Service) {
 		return
 	}
 
-	// Step 2: Claude Code fix
+	// Claude Code
 	prompt := buildFixPrompt(issue)
 	cmd := exec.Command("claude", "-p", prompt, "--allowedTools", "Read,Edit,Bash", "--dangerously-skip-permissions")
 	cmd.Dir = repoPath
@@ -93,8 +92,8 @@ func (p *Pipeline) Run(issue model.Issue, svc model.Service) {
 	fixStep.Status = "ok"
 	fixLog.Steps = append(fixLog.Steps, fixStep)
 
-	// Step 3: Run tests
-	testCmd := getTestCommand(svc.Language)
+	// Tests
+	testCmd := getTestCommand(repoPath)
 	if testCmd != "" {
 		parts := strings.Fields(testCmd)
 		step = p.runCmd("run tests: "+testCmd, repoPath, parts[0], parts[1:]...)
@@ -108,14 +107,13 @@ func (p *Pipeline) Run(issue model.Issue, svc model.Service) {
 		}
 	}
 
-	// Step 4: git add + commit
+	// git commit
 	step = p.runCmd("git add -A", repoPath, "git", "add", "-A")
 	fixLog.Steps = append(fixLog.Steps, step)
-	msg := fmt.Sprintf("fix: [sentinel] %s\n\nAuto-fix for issue %s", issue.Title, issue.ID)
-	step = p.runCmd("git commit", repoPath, "git", "commit", "-m", msg)
-	fixLog.Steps = append(fixLog.Steps, step)
+	msg := fmt.Sprintf("fix: [sentinel] %s", issue.Title)
+	p.runCmd("git commit", repoPath, "git", "commit", "-m", msg)
 
-	// Step 5: git push
+	// git push
 	step = p.runCmd("git push", repoPath, "git", "push", "origin", branchName)
 	fixLog.Steps = append(fixLog.Steps, step)
 	if step.Status == "failed" {
@@ -124,64 +122,45 @@ func (p *Pipeline) Run(issue model.Issue, svc model.Service) {
 		return
 	}
 
-	// Step 6: Create PR
+	// gh pr create
 	prCmd := exec.Command("gh", "pr", "create",
 		"--title", fmt.Sprintf("fix: [sentinel] %s", issue.Title),
-		"--body", fmt.Sprintf("Auto-fix for issue %s\n\nAI Suggestion: %s", issue.ID, issue.AIFixSuggestion),
+		"--body", fmt.Sprintf("Auto-fix for issue %s", issue.ID),
 		"--base", "main", "--head", branchName)
 	prCmd.Dir = repoPath
 	var prOut bytes.Buffer
 	prCmd.Stdout = &prOut
 	prCmd.Stderr = &prOut
-	prErr := prCmd.Run()
-	prOutput := prOut.String()
-	step = FixStep{Step: "gh pr create", Output: prOutput}
-	if prErr != nil {
+	step = FixStep{Step: "gh pr create", Output: prOut.String()}
+	if prCmd.Run() != nil {
 		step.Status = "failed"
-		step.Error = prErr.Error()
 		fixLog.Steps = append(fixLog.Steps, step)
-		p.failWithLog(issue.ID, fixLog, fmt.Sprintf("PR create failed: %v", prErr))
+		p.failWithLog(issue.ID, fixLog, "PR create failed")
 		return
 	}
 	step.Status = "ok"
 	fixLog.Steps = append(fixLog.Steps, step)
-	prURL := strings.TrimSpace(prOutput)
 
 	// Success
 	p.db.Model(&issue).Updates(map[string]interface{}{
-		"fix_status": "succeeded",
-		"fix_pr_url": prURL,
-		"fix_branch": branchName,
-		"status":     "fixed",
+		"fix_status": "succeeded", "fix_pr_url": strings.TrimSpace(prOut.String()),
+		"fix_branch": branchName, "status": "fixed",
 	})
-	p.timeline(issue.ID, "auto_fix_completed", fmt.Sprintf("PR created: %s", prURL))
+	p.timeline(issue.ID, "auto_fix_completed", "PR: "+strings.TrimSpace(prOut.String()))
 	p.saveLog(issue.ID, fixLog)
-	log.Printf("[autofix] completed: %s", prURL)
+	log.Printf("[autofix] completed: %s", strings.TrimSpace(prOut.String()))
 }
 
 func (p *Pipeline) runCmd(label string, dir string, name string, args ...string) FixStep {
 	cmd := exec.Command(name, args...)
-	if dir != "" {
-		cmd.Dir = dir
-	}
+	if dir != "" { cmd.Dir = dir }
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
 	err := cmd.Run()
 	step := FixStep{Output: buf.String()}
-	if label != "" {
-		step.Step = label
-	} else {
-		step.Step = fmt.Sprintf("%s %s", name, strings.Join(args, " "))
-	}
-	if err != nil {
-		step.Status = "failed"
-		step.Error = err.Error()
-		log.Printf("[autofix] step failed: %s: %v\n%s", step.Step, err, step.Output)
-	} else {
-		step.Status = "ok"
-		log.Printf("[autofix] step ok: %s", step.Step)
-	}
+	if label != "" { step.Step = label } else { step.Step = fmt.Sprintf("%s %s", name, strings.Join(args, " ")) }
+	if err != nil { step.Status = "failed"; step.Error = err.Error() } else { step.Status = "ok" }
 	return step
 }
 
@@ -204,20 +183,9 @@ func (p *Pipeline) gitCleanup(repoPath, branch string) {
 	exec.Command("git", "-C", repoPath, "branch", "-D", branch).Run()
 }
 
-func (p *Pipeline) fail(issueID uuid.UUID, reason string) {
-	log.Printf("[autofix] FAILED %s: %s", issueID, reason)
-	p.db.Model(&model.Issue{}).Where("id = ?", issueID).Updates(map[string]interface{}{
-		"fix_type": "auto", "fix_status": "failed",
-	})
-	p.timeline(issueID, "auto_fix_failed", reason)
-}
-
 func (p *Pipeline) timeline(issueID uuid.UUID, eventType, description string) {
 	p.db.Create(&model.IssueTimeline{
-		IssueID:     issueID,
-		EventType:   eventType,
-		Description: description,
-		CreatedAt:   time.Now(),
+		IssueID: issueID, EventType: eventType, Description: description, CreatedAt: time.Now(),
 	})
 }
 
@@ -233,13 +201,12 @@ func buildFixPrompt(issue model.Issue) string {
 	return p
 }
 
-func getTestCommand(language string) string {
-	switch language {
-	case "go":
+func getTestCommand(repoPath string) string {
+	if _, err := os.Stat(filepath.Join(repoPath, "go.mod")); err == nil {
 		return "go test ./..."
-	case "typescript":
-		return "npm test"
-	default:
-		return ""
 	}
+	if _, err := os.Stat(filepath.Join(repoPath, "package.json")); err == nil {
+		return "npm test"
+	}
+	return ""
 }

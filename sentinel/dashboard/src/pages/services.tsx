@@ -13,7 +13,6 @@ export default function ServicesPage() {
   const [newName, setNewName] = useState('');
   const [newDisplay, setNewDisplay] = useState('');
   const [newRepo, setNewRepo] = useState('');
-  const [newLang, setNewLang] = useState('go');
   const [newTeam, setNewTeam] = useState('');
 
   useEffect(() => { fetchServices().then(setServices); }, []);
@@ -37,11 +36,9 @@ export default function ServicesPage() {
   const addService = async () => {
     if (!newName) return;
     await fetch(`${BASE_URL}/api/v1/services`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName, display_name: newDisplay, repo_url: newRepo, language: newLang, owner_team: newTeam }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName, display_name: newDisplay, repo_url: newRepo, owner_team: newTeam }),
     });
     setShowAdd(false);
-    setNewName(''); setNewDisplay(''); setNewRepo(''); setNewLang('go'); setNewTeam('');
     fetchServices().then(setServices);
   };
 
@@ -84,12 +81,6 @@ export default function ServicesPage() {
                 <input value={newRepo} onChange={e => setNewRepo(e.target.value)} placeholder="https://github.com/xxx" style={inputStyle} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>语言</label>
-                <select value={newLang} onChange={e => setNewLang(e.target.value)} style={inputStyle}>
-                  <option value="go">Go</option>
-                  <option value="typescript">TypeScript</option>
-                  <option value="python">Python</option>
-                </select>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
@@ -106,7 +97,6 @@ export default function ServicesPage() {
                 <div>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{svc.display_name || svc.name}</span>
                   <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{svc.name}</span>
-                  <span style={{ marginLeft: 8, padding: '2px 6px', borderRadius: 4, fontSize: 10, background: svc.language === 'go' ? 'rgba(59,130,246,0.15)' : 'rgba(234,179,8,0.15)', color: svc.language === 'go' ? 'var(--info)' : 'var(--warning)', fontFamily: 'var(--font-mono)' }}>{svc.language || 'go'}</span>
                 </div>
                 <button onClick={() => openEdit(svc)} style={{ padding: '5px 14px', background: editing?.id === svc.id ? 'var(--accent)' : 'var(--bg-hover)', color: editing?.id === svc.id ? '#000' : 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', transition: 'var(--transition)' }}>配置</button>
               </div>

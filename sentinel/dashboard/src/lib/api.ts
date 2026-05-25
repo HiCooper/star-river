@@ -30,6 +30,7 @@ export interface Issue {
   ai_suspected_file: string;
   ai_suspected_line: number;
   deep_diagnosis: any;
+  fix_log: any;
   fix_type: string;
   fix_pr_url: string;
   fix_status: string;

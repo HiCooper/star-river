@@ -25,6 +25,58 @@ function DeepDiagnosis({ issue }: { issue: Issue }) {
   } catch { return null; }
 }
 
+function FixLog({ issue }: { issue: Issue }) {
+  if (!issue.fix_log) return null;
+  try {
+    const log = typeof issue.fix_log === 'string' ? JSON.parse(issue.fix_log) : issue.fix_log;
+    const steps: any[] = log.steps || [];
+    if (steps.length === 0) return null;
+
+    return (
+      <div style={{ background: '#0a0a0a', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 16, marginBottom: 16, fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>执行日志</span>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Pipeline Console</span>
+        </div>
+        {steps.map((step: any, idx: number) => (
+          <div key={idx} style={{ marginBottom: idx < steps.length - 1 ? 10 : 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
+                background: step.status === 'ok' ? '#22C55E' : step.status === 'failed' ? '#EF4444' : '#F59E0B',
+              }} />
+              <span style={{ color: step.status === 'ok' ? '#22C55E' : step.status === 'failed' ? '#EF4444' : '#F59E0B', fontWeight: 500 }}>
+                {step.step}
+              </span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                {step.status === 'ok' ? 'OK' : step.status === 'failed' ? 'FAILED' : '...'}
+              </span>
+            </div>
+            {step.output && (
+              <pre style={{
+                background: '#111', color: '#94A3B8', padding: '8px 12px', borderRadius: 4,
+                margin: '4px 0 0 16px', overflow: 'auto', maxHeight: 300, fontSize: 11,
+                lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                borderLeft: step.status === 'failed' ? '2px solid #EF4444' : '2px solid #334155',
+              }}>
+                {step.output.slice(0, 3000)}
+              </pre>
+            )}
+            {step.error && (
+              <pre style={{
+                background: '#1a0000', color: '#EF4444', padding: '6px 12px', borderRadius: 4,
+                margin: '4px 0 0 16px', fontSize: 11, whiteSpace: 'pre-wrap',
+              }}>
+                {step.error}
+              </pre>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  } catch { return null; }
+}
+
 export default function IssueDetail() {
   const router = useRouter();
   const { id } = router.query;
@@ -74,8 +126,8 @@ export default function IssueDetail() {
         )}
 
         <DeepDiagnosis issue={issue} />
+        <FixLog issue={issue} />
 
-        {/* Actions — only show when pending */}
         {issue.review_status === 'pending' && issue.ai_auto_fixable === 'yes' && (
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={async () => { await approveIssue(issue.id); router.reload(); }} style={{ padding: '8px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>批准自动修复</button>
@@ -83,14 +135,10 @@ export default function IssueDetail() {
           </div>
         )}
         {issue.review_status === 'approved' && (
-          <div style={{ padding: '8px 16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
-            已批准 · 等待自动修复执行
-          </div>
+          <div style={{ padding: '8px 16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>已批准 · 等待自动修复执行</div>
         )}
         {issue.review_status === 'rejected' && (
-          <div style={{ padding: '8px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--destructive)', fontFamily: 'var(--font-mono)' }}>
-            已拒绝 · 需人工处理
-          </div>
+          <div style={{ padding: '8px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--destructive)', fontFamily: 'var(--font-mono)' }}>已拒绝 · 需人工处理</div>
         )}
         {issue.fix_pr_url && (
           <div style={{ padding: '8px 16px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--info)', fontFamily: 'var(--font-mono)', marginTop: 12 }}>

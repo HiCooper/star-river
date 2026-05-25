@@ -32,6 +32,7 @@ type Issue struct {
 	FixBranch    string  `json:"fix_branch"`
 	FixCommitSHA string  `json:"fix_commit_sha"`
 	FixStatus    string  `json:"fix_status"`
+	FixLog        datatypes.JSON `json:"fix_log"`
 	DeepDiagnosis   datatypes.JSON `json:"deep_diagnosis"`
 
 	ReviewStatus string     `gorm:"default:pending" json:"review_status"`

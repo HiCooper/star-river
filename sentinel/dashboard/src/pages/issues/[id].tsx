@@ -43,20 +43,12 @@ export default function IssueDetail() {
   return (
     <Layout>
       <div style={{ padding: '24px 28px', maxWidth: 960 }}>
-        <a href="/" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          color: 'var(--accent)', fontSize: 13, textDecoration: 'none',
-          fontFamily: 'var(--font-mono)', marginBottom: 20,
-        }}>← 返回 Issue 列表</a>
+        <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontSize: 13, textDecoration: 'none', fontFamily: 'var(--font-mono)', marginBottom: 20 }}>← 返回 Issue 列表</a>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <span style={{ padding: '4px 12px', borderRadius: 4, fontSize: 13, fontWeight: 600, background: `${sev}22`, color: sev, fontFamily: 'var(--font-mono)' }}>
-            {issue.severity.toUpperCase()}
-          </span>
+          <span style={{ padding: '4px 12px', borderRadius: 4, fontSize: 13, fontWeight: 600, background: `${sev}22`, color: sev, fontFamily: 'var(--font-mono)' }}>{issue.severity.toUpperCase()}</span>
           <span style={{ color: 'var(--text-muted)', fontSize: 13, fontFamily: 'var(--font-mono)' }}>{issue.service_name} · {issue.category}</span>
-          {issue.deep_diagnosis && (
-            <span style={{ padding: '4px 10px', borderRadius: 4, fontSize: 12, background: 'rgba(59,130,246,0.15)', color: 'var(--info)', fontFamily: 'var(--font-mono)' }}>精诊完成</span>
-          )}
+          {issue.deep_diagnosis && <span style={{ padding: '4px 10px', borderRadius: 4, fontSize: 12, background: 'rgba(59,130,246,0.15)', color: 'var(--info)', fontFamily: 'var(--font-mono)' }}>精诊完成</span>}
         </div>
 
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 28, color: 'var(--text-primary)' }}>{issue.title}</h1>
@@ -83,10 +75,28 @@ export default function IssueDetail() {
 
         <DeepDiagnosis issue={issue} />
 
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={async () => { await approveIssue(issue.id); router.reload(); }} style={{ padding: '8px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>批准自动修复</button>
-          <button onClick={async () => { await rejectIssue(issue.id); router.reload(); }} style={{ padding: '8px 20px', background: 'var(--destructive)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>拒绝</button>
-        </div>
+        {/* Actions — only show when pending */}
+        {issue.review_status === 'pending' && issue.ai_auto_fixable === 'yes' && (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={async () => { await approveIssue(issue.id); router.reload(); }} style={{ padding: '8px 20px', background: 'var(--accent)', color: '#000', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>批准自动修复</button>
+            <button onClick={async () => { await rejectIssue(issue.id); router.reload(); }} style={{ padding: '8px 20px', background: 'var(--destructive)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-sans)' }}>拒绝</button>
+          </div>
+        )}
+        {issue.review_status === 'approved' && (
+          <div style={{ padding: '8px 16px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
+            已批准 · 等待自动修复执行
+          </div>
+        )}
+        {issue.review_status === 'rejected' && (
+          <div style={{ padding: '8px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--destructive)', fontFamily: 'var(--font-mono)' }}>
+            已拒绝 · 需人工处理
+          </div>
+        )}
+        {issue.fix_pr_url && (
+          <div style={{ padding: '8px 16px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--info)', fontFamily: 'var(--font-mono)', marginTop: 12 }}>
+            PR: <a href={issue.fix_pr_url} target="_blank" style={{ color: 'var(--info)' }}>{issue.fix_pr_url}</a>
+          </div>
+        )}
       </div>
     </Layout>
   );

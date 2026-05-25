@@ -31,7 +31,7 @@ type AIEngineConfig struct {
 func Load() (*Config, error) {
 	cfg := &Config{
 		Server: ServerConfig{
-			Port:        getEnv("PORT", "8082"),
+			Port:        getEnv("PLATFORM_PORT", "8082"),
 			Mode:        getEnv("GIN_MODE", "debug"),
 			CORSOrigins: getEnv("CORS_ORIGINS", "http://localhost:3000"),
 		},

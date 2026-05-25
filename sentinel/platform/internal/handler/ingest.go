@@ -36,6 +36,7 @@ type IngestErrorReq struct {
 	ErrorCode   string `json:"error_code"`
 	Message     string `json:"message" binding:"required"`
 	StackTrace  string `json:"stack_trace"`
+	RawLog      string `json:"raw_log"`
 	TraceID     string `json:"trace_id"`
 	Handler     string `json:"handler"`
 	File        string `json:"file"`
@@ -129,7 +130,6 @@ func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestE
 }
 
 func (h *IngestHandler) enrichWithAI(issue model.Issue, req *IngestErrorReq) {
-	// Phase 1: DeepSeek 粗筛
 	result, err := h.triage.Classify(
 		req.ServiceName, req.ErrorCode, req.Message,
 		req.StackTrace, req.File, req.Handler, req.Line,
@@ -140,27 +140,25 @@ func (h *IngestHandler) enrichWithAI(issue model.Issue, req *IngestErrorReq) {
 	}
 
 	h.db.Model(&issue).Updates(map[string]interface{}{
-		"ai_category":        result.Category,
-		"ai_severity":        result.Severity,
-		"ai_auto_fixable":    result.AutoFixable,
-		"ai_confidence":      result.Confidence,
-		"ai_suspected_file":  result.SuspectedFile,
-		"ai_suspected_line":  result.SuspectedLine,
-		"ai_fix_suggestion":  result.FixSuggestion,
-		"severity":           result.Severity,
-		"category":           result.Category,
+		"ai_category":       result.Category,
+		"ai_severity":       result.Severity,
+		"ai_auto_fixable":   result.AutoFixable,
+		"ai_confidence":     result.Confidence,
+		"ai_suspected_file": result.SuspectedFile,
+		"ai_suspected_line": result.SuspectedLine,
+		"ai_fix_suggestion": result.FixSuggestion,
+		"severity":          result.Severity,
+		"category":          result.Category,
 	})
 
 	_ = h.db.Create(&model.IssueTimeline{
 		IssueID:     issue.ID,
 		EventType:   "ai_triaged",
-		Description: fmt.Sprintf("AI classified as %s/%s (conf: %d%%)",
-			result.Category, result.Severity, result.Confidence),
+		Description: fmt.Sprintf("AI classified as %s/%s (conf: %d%%)", result.Category, result.Severity, result.Confidence),
 	})
 
 	log.Printf("[sentinel] AI enriched issue %s: %s/%s", issue.ID, result.Category, result.Severity)
 
-	// Phase 2: Claude Code 精诊 (high/critical or auto_fixable)
 	needsDeep := result.Severity == "high" || result.Severity == "critical" || result.AutoFixable == "yes"
 	if !needsDeep {
 		return
@@ -178,6 +176,7 @@ func (h *IngestHandler) enrichWithAI(issue model.Issue, req *IngestErrorReq) {
 		ErrorCode:   req.ErrorCode,
 		Message:     req.Message,
 		StackTrace:  req.StackTrace,
+		RawLog:      req.RawLog,
 		File:        req.File,
 		Line:        req.Line,
 		Handler:     req.Handler,

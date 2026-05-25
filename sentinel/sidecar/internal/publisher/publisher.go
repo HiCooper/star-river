@@ -35,6 +35,7 @@ type ingestReq struct {
 	Handler     string `json:"handler"`
 	File        string `json:"file"`
 	Line        int    `json:"line"`
+		RawLine     string `json:"raw_line"`
 	ServiceName string `json:"service_name"`
 }
 

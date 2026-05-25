@@ -17,6 +17,7 @@ type DiagnoseInput struct {
 	File        string `json:"file"`
 	Line        int    `json:"line"`
 	Handler     string `json:"handler"`
+	RawLog      string `json:"raw_log"`
 	RepoPath    string `json:"repo_path"`
 	DocsPath    string `json:"docs_path"`
 }
@@ -32,7 +33,7 @@ type DiagnoseResult struct {
 func Diagnose(input DiagnoseInput) (*DiagnoseResult, error) {
 	prompt := buildPrompt(input)
 
-	cmd := exec.Command("claude", "-p", prompt)
+	cmd := exec.Command("claude", "-p", prompt, "--dangerously-skip-permissions")
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -63,6 +64,9 @@ func Diagnose(input DiagnoseInput) (*DiagnoseResult, error) {
 func buildPrompt(input DiagnoseInput) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("你是 %s 服务的 SRE 专家。请分析以下线上错误：\n\n", input.ServiceName))
+	if input.RawLog != "" {
+		sb.WriteString(fmt.Sprintf("原始日志:\n%s\n\n", input.RawLog))
+	}
 	sb.WriteString(fmt.Sprintf("错误码: %s\n", input.ErrorCode))
 	sb.WriteString(fmt.Sprintf("错误消息: %s\n", input.Message))
 	sb.WriteString(fmt.Sprintf("位置: %s:%d\n", input.File, input.Line))

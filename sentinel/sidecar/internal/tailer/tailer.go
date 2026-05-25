@@ -13,6 +13,7 @@ type ErrorEntry struct {
 	ErrorCode  string `json:"error_code"`
 	Message    string `json:"message"`
 	StackTrace string `json:"stack_trace"`
+	RawLine    string `json:"raw_line"`
 	TraceID    string `json:"trace_id"`
 	Handler    string `json:"handler"`
 	File       string `json:"file"`
@@ -25,8 +26,16 @@ func Tail(reader io.Reader, out chan<- ErrorEntry) {
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
+		rawLine := string(line)
 		var entry map[string]interface{}
 		if err := json.Unmarshal(line, &entry); err != nil {
+			// Non-JSON log — still capture as raw error
+			errEntry := ErrorEntry{
+				Level:   "error",
+				Message: rawLine,
+				RawLine: rawLine,
+			}
+			out <- errEntry
 			continue
 		}
 
@@ -36,7 +45,8 @@ func Tail(reader io.Reader, out chan<- ErrorEntry) {
 		}
 
 		errEntry := ErrorEntry{
-			Level: level,
+			Level:   level,
+			RawLine: rawLine,
 		}
 		if v, ok := entry["timestamp"].(string); ok {
 			errEntry.Timestamp = v
@@ -49,7 +59,9 @@ func Tail(reader io.Reader, out chan<- ErrorEntry) {
 		} else if v, ok := entry["msg"].(string); ok {
 			errEntry.Message = v
 		}
-		if v, ok := entry["stack"].(string); ok {
+		if v, ok := entry["stack_trace"].(string); ok {
+			errEntry.StackTrace = v
+		} else if v, ok := entry["stack"].(string); ok {
 			errEntry.StackTrace = v
 		}
 		if v, ok := entry["trace_id"].(string); ok {
@@ -64,7 +76,6 @@ func Tail(reader io.Reader, out chan<- ErrorEntry) {
 		if v, ok := entry["line"].(float64); ok {
 			errEntry.Line = int(v)
 		}
-
 		out <- errEntry
 	}
 

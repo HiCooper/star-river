@@ -3,6 +3,7 @@ package handler
 import (
 	"crypto/sha256"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 	"unicode/utf8"
@@ -12,16 +13,18 @@ import (
 	"gorm.io/gorm/clause"
 
 	"github.com/hydra/sentinel-service/internal/model"
+	"github.com/hydra/sentinel-service/internal/triage"
 	"github.com/hydra/sentinel-service/pkg/errors"
 	"github.com/hydra/sentinel-service/pkg/response"
 )
 
 type IngestHandler struct {
-	db *gorm.DB
+	db      *gorm.DB
+	triage  *triage.Client
 }
 
-func NewIngestHandler(db *gorm.DB) *IngestHandler {
-	return &IngestHandler{db: db}
+func NewIngestHandler(db *gorm.DB, triageClient *triage.Client) *IngestHandler {
+	return &IngestHandler{db: db, triage: triageClient}
 }
 
 type IngestErrorReq struct {
@@ -76,7 +79,6 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 			continue
 		}
 
-		// Re-read occurrence_count scoped to this specific row
 		h.db.Model(&model.ErrorSignature{}).
 			Where("id = ?", es.ID).
 			Select("occurrence_count").
@@ -116,7 +118,49 @@ func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestE
 			EventType:   "created",
 			Description: fmt.Sprintf("Issue auto-created from error signature %s", sig.Signature[:8]),
 		})
+
+		// Async AI triage
+		if h.triage != nil {
+			go h.enrichWithAI(issue, req)
+		}
 	}
+}
+
+func (h *IngestHandler) enrichWithAI(issue model.Issue, req *IngestErrorReq) {
+	result, err := h.triage.Classify(
+		req.ServiceName, req.ErrorCode, req.Message,
+		req.StackTrace, req.File, req.Handler, req.Line,
+	)
+	if err != nil {
+		log.Printf("[sentinel] AI triage failed for issue %s: %v", issue.ID, err)
+		return
+	}
+
+	err = h.db.Model(&issue).Updates(map[string]interface{}{
+		"ai_category":        result.Category,
+		"ai_severity":        result.Severity,
+		"ai_auto_fixable":    result.AutoFixable,
+		"ai_confidence":      result.Confidence,
+		"ai_suspected_file":  result.SuspectedFile,
+		"ai_suspected_line":  result.SuspectedLine,
+		"ai_fix_suggestion":  result.FixSuggestion,
+		"severity":           result.Severity,
+		"category":           result.Category,
+	}).Error
+
+	if err != nil {
+		log.Printf("[sentinel] failed to update AI result for issue %s: %v", issue.ID, err)
+		return
+	}
+
+	_ = h.db.Create(&model.IssueTimeline{
+		IssueID:     issue.ID,
+		EventType:   "ai_triaged",
+		Description: fmt.Sprintf("AI classified as %s/%s (confidence: %d%%)",
+			result.Category, result.Severity, result.Confidence),
+	})
+
+	log.Printf("[sentinel] AI enriched issue %s: %s/%s", issue.ID, result.Category, result.Severity)
 }
 
 func computeSignature(service, errorCode, file, message string) string {

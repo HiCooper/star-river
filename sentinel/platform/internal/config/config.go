@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	AIEngine AIEngineConfig
 }
 
 type ServerConfig struct {
@@ -17,10 +18,14 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
-	URL            string
-	MaxOpenConns   int
-	MaxIdleConns   int
+	URL             string
+	MaxOpenConns    int
+	MaxIdleConns    int
 	ConnMaxLifetime int
+}
+
+type AIEngineConfig struct {
+	URL string
 }
 
 func Load() (*Config, error) {
@@ -35,6 +40,9 @@ func Load() (*Config, error) {
 			MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 25),
 			MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 10),
 			ConnMaxLifetime: getEnvInt("DB_CONN_MAX_LIFETIME", 300),
+		},
+		AIEngine: AIEngineConfig{
+			URL: getEnv("AI_ENGINE_URL", "http://localhost:8083"),
 		},
 	}
 	return cfg, nil

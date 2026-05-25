@@ -6,31 +6,73 @@ import { Issue, fetchIssue, approveIssue, rejectIssue } from '../../lib/api';
 
 const sevColor: Record<string, string> = { critical: '#EF4444', high: '#F97316', medium: '#EAB308', low: '#22C55E' };
 
-function DeepDiagnosis({ issue }: { issue: Issue }) {
+function Drawer({ open, onClose, title, content }: { open: boolean; onClose: () => void; title: string; content: string }) {
+  if (!open) return null;
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100,
+      }} />
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(720px, 90vw)',
+        background: 'var(--bg-primary)', borderLeft: '1px solid var(--border)',
+        zIndex: 101, display: 'flex', flexDirection: 'column',
+        boxShadow: '-8px 0 30px rgba(0,0,0,0.5)',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 20px', borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-secondary)',
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+            {title}
+          </span>
+          <button onClick={onClose} style={{
+            background: 'none', border: 'none', color: 'var(--text-muted)',
+            cursor: 'pointer', fontSize: 18, padding: '4px 8px',
+          }}>✕</button>
+        </div>
+        <div style={{ flex: 1, overflow: 'auto', padding: '12px' }}>
+          <TerminalViewer title={title} content={content} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+function DeepDiagnosis({ issue, onViewProcess }: { issue: Issue; onViewProcess: (title: string, content: string) => void }) {
   if (!issue.deep_diagnosis) return null;
   try {
     const d = typeof issue.deep_diagnosis === 'string' ? JSON.parse(issue.deep_diagnosis) : issue.deep_diagnosis;
     const raw = d.raw_output || d.RawOutput || '';
     return (
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--info)', borderRadius: 'var(--radius) 8px 0 0', padding: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--info)', fontFamily: 'var(--font-mono)' }}>Claude Code 精诊分析</div>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>根因分析</div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.root_cause || d.RootCause || '-'}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>修复方案</div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.fix_plan || d.FixPlan || '-'}</div>
-          </div>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--info)', borderRadius: 'var(--radius)', padding: 18, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--info)', fontFamily: 'var(--font-mono)' }}>
+            Claude Code 精诊分析
+          </span>
+          {raw && (
+            <button onClick={() => onViewProcess('claude · 精诊会话', raw)} style={{
+              padding: '4px 12px', background: 'var(--bg-primary)', color: 'var(--text-secondary)',
+              border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer',
+              fontSize: 11, fontFamily: 'var(--font-mono)',
+            }}>查看过程 →</button>
+          )}
         </div>
-        {raw && <TerminalViewer title="claude · 精诊会话" content={raw} />}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>根因分析</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.root_cause || d.RootCause || '-'}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>修复方案</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.fix_plan || d.FixPlan || '-'}</div>
+        </div>
       </div>
     );
   } catch { return null; }
 }
 
-function FixLog({ issue }: { issue: Issue }) {
+function FixLog({ issue, onViewProcess }: { issue: Issue; onViewProcess: (title: string, content: string) => void }) {
   if (!issue.fix_log) return null;
   try {
     const log = typeof issue.fix_log === 'string' ? JSON.parse(issue.fix_log) : issue.fix_log;
@@ -49,7 +91,17 @@ function FixLog({ issue }: { issue: Issue }) {
       return out;
     }).join('');
 
-    return <TerminalViewer title="pipeline · 执行日志" content={combinedOutput} />;
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={() => onViewProcess('pipeline · 执行日志', combinedOutput)} style={{
+          padding: '6px 14px', background: 'var(--bg-card)', color: 'var(--text-secondary)',
+          border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer',
+          fontSize: 11, fontFamily: 'var(--font-mono)', width: '100%', textAlign: 'left',
+        }}>
+          查看 Pipeline 执行日志 →
+        </button>
+      </div>
+    );
   } catch { return null; }
 }
 
@@ -57,6 +109,10 @@ export default function IssueDetail() {
   const router = useRouter();
   const { id } = router.query;
   const [issue, setIssue] = useState<Issue | null>(null);
+  const [drawer, setDrawer] = useState<{ open: boolean; title: string; content: string }>({ open: false, title: '', content: '' });
+
+  const openDrawer = (title: string, content: string) => setDrawer({ open: true, title, content });
+  const closeDrawer = () => setDrawer({ open: false, title: '', content: '' });
 
   useEffect(() => {
     if (id) fetchIssue(id as string).then(r => { if (r) setIssue(r); });
@@ -70,6 +126,8 @@ export default function IssueDetail() {
 
   return (
     <Layout>
+      <Drawer open={drawer.open} onClose={closeDrawer} title={drawer.title} content={drawer.content} />
+
       <div style={{ padding: '24px 28px', maxWidth: 960 }}>
         <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontSize: 13, textDecoration: 'none', fontFamily: 'var(--font-mono)', marginBottom: 20 }}>← 返回 Issue 列表</a>
 
@@ -101,8 +159,8 @@ export default function IssueDetail() {
           </div>
         )}
 
-        <DeepDiagnosis issue={issue} />
-        <FixLog issue={issue} />
+        <DeepDiagnosis issue={issue} onViewProcess={openDrawer} />
+        <FixLog issue={issue} onViewProcess={openDrawer} />
 
         {issue.review_status === 'pending' && issue.ai_auto_fixable === 'yes' && (
           <div style={{ display: 'flex', gap: 10 }}>

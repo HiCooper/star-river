@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"gorm.io/datatypes"
 
 	"github.com/hydra/sentinel-service/internal/model"
 	"github.com/hydra/sentinel-service/pkg/errors"
@@ -37,7 +36,8 @@ func (h *ServiceHandler) GetService(c *gin.Context) {
 }
 
 type UpdateServiceConfigReq struct {
-	ConfigJSON datatypes.JSON `json:"config_json"`
+	RepoLocalPath string `json:"repo_local_path"`
+	DocsPath      string `json:"docs_path"`
 }
 
 func (h *ServiceHandler) UpdateServiceConfig(c *gin.Context) {
@@ -54,7 +54,11 @@ func (h *ServiceHandler) UpdateServiceConfig(c *gin.Context) {
 		return
 	}
 
-	svc.ConfigJSON = req.ConfigJSON
-	if err := h.db.Save(&svc).Error; err != nil { response.Error(c, http.StatusInternalServerError, errors.InternalError, "Failed to save service"); return }
+	svc.RepoLocalPath = req.RepoLocalPath
+	svc.DocsPath = req.DocsPath
+	if err := h.db.Save(&svc).Error; err != nil {
+		response.Error(c, http.StatusInternalServerError, errors.InternalError, "Failed to save service")
+		return
+	}
 	response.Success(c, svc)
 }

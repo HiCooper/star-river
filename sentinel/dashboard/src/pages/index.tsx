@@ -59,7 +59,8 @@ export default function Dashboard() {
         <span style={{ marginLeft: 8, color: 'var(--text-muted)', fontSize: 13 }}>
           Sentinel
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
+        <a href="/services" style={{ marginLeft: "12px", color: "var(--text-muted)", fontSize: 12, textDecoration: "none", fontFamily: "var(--font-mono)" }}>服务配置</a>
+<span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
           {stats ? `${stats.open_issues} open / ${stats.total_issues} total` : 'Loading...'}
         </span>
       </header>
@@ -165,7 +166,8 @@ export default function Dashboard() {
                     🧠 精诊
                   </span>
                 )}
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                <a href="/services" style={{ marginLeft: "12px", color: "var(--text-muted)", fontSize: 12, textDecoration: "none", fontFamily: "var(--font-mono)" }}>服务配置</a>
+<span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                   {timeAgo(issue.created_at)}
                 </span>
               </div>

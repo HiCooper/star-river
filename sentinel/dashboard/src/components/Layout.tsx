@@ -13,7 +13,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
       {/* Sidebar */}
       <aside style={{
-        width: 220, minWidth: 220,
+        width: 220, minWidth: 220, height: "100vh", position: "sticky", top: 0,
         background: 'var(--bg-secondary)',
         borderRight: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column',

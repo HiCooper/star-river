@@ -9,7 +9,14 @@ fi
 
 echo "=== 星河哨兵 · 本地开发启动 ==="
 
-if ! pg_isready -h localhost -p 5432 -U hydra -d sentinel >/dev/null 2>&1; then
+# Clean up stale processes
+kill $(lsof -ti :8082) 2>/dev/null || true
+kill $(lsof -ti :8083) 2>/dev/null || true
+kill $(lsof -ti :3000) 2>/dev/null || true
+sleep 1
+
+# Check PostgreSQL via docker
+if ! docker exec postgres pg_isready -U hydra -d sentinel >/dev/null 2>&1; then
   echo "PostgreSQL 未就绪，请先启动: docker compose -f docker-compose.infra.yml up -d"
   exit 1
 fi

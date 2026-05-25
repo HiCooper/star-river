@@ -6,6 +6,7 @@ import (
 
 	"github.com/hydra/sentinel-service/internal/config"
 	"github.com/hydra/sentinel-service/internal/handler"
+	"github.com/hydra/sentinel-service/internal/autofix"
 	"github.com/hydra/sentinel-service/internal/middleware"
 	"github.com/hydra/sentinel-service/internal/triage"
 )
@@ -22,7 +23,7 @@ func Setup(cfg *config.Config, db *gorm.DB) *gin.Engine {
 
 	triageClient := triage.NewClient(cfg.AIEngine.URL)
 	ingestHandler := handler.NewIngestHandler(db, triageClient)
-	issueHandler := handler.NewIssueHandler(db)
+	af := autofix.NewPipeline(db); issueHandler := handler.NewIssueHandler(db, af)
 	serviceHandler := handler.NewServiceHandler(db)
 	statsHandler := handler.NewStatsHandler(db)
 	safetyHandler := handler.NewSafetyHandler(db)

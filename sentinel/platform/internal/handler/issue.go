@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -8,17 +9,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"github.com/hydra/sentinel-service/internal/autofix"
 	"github.com/hydra/sentinel-service/internal/model"
 	"github.com/hydra/sentinel-service/pkg/errors"
 	"github.com/hydra/sentinel-service/pkg/response"
 )
 
 type IssueHandler struct {
-	db *gorm.DB
+	db      *gorm.DB
+	autofix *autofix.Pipeline
 }
 
-func NewIssueHandler(db *gorm.DB) *IssueHandler {
-	return &IssueHandler{db: db}
+func NewIssueHandler(db *gorm.DB, af *autofix.Pipeline) *IssueHandler {
+	return &IssueHandler{db: db, autofix: af}
 }
 
 func (h *IssueHandler) ListIssues(c *gin.Context) {
@@ -82,6 +85,18 @@ func (h *IssueHandler) ApproveIssue(c *gin.Context) {
 		EventType:   "review_approved",
 		Description: "Issue approved for auto-fix",
 	})
+
+	// Trigger autofix pipeline asynchronously
+	if h.autofix != nil && issue.AIAutoFixable == "yes" {
+		go func() {
+			var svc model.Service
+			if err := h.db.Where("name = ?", issue.ServiceName).First(&svc).Error; err != nil {
+				log.Printf("[sentinel] autofix: service %s not found", issue.ServiceName)
+				return
+			}
+			h.autofix.Run(issue, svc)
+		}()
+	}
 
 	response.Success(c, issue)
 }

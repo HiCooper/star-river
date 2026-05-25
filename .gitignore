@@ -76,3 +76,4 @@ $RECYCLE.BIN/
  docs/temp/
 sentinel/platform/server
 __pycache__/
+sentinel/.env

@@ -108,7 +108,7 @@ export default function ServicesPage() {
                   <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{svc.name}</span>
                   <span style={{ marginLeft: 8, padding: '2px 6px', borderRadius: 4, fontSize: 10, background: svc.language === 'go' ? 'rgba(59,130,246,0.15)' : 'rgba(234,179,8,0.15)', color: svc.language === 'go' ? 'var(--info)' : 'var(--warning)', fontFamily: 'var(--font-mono)' }}>{svc.language || 'go'}</span>
                 </div>
-                <button onClick={() => openEdit(svc)} style={{ padding: '5px 14px', background: editing?.id === svc.id ? 'var(--accent)' : 'transparent', color: editing?.id === svc.id ? '#000' : 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', transition: 'var(--transition)' }}>配置</button>
+                <button onClick={() => openEdit(svc)} style={{ padding: '5px 14px', background: editing?.id === svc.id ? 'var(--accent)' : 'var(--bg-hover)', color: editing?.id === svc.id ? '#000' : 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)', transition: 'var(--transition)' }}>配置</button>
               </div>
               <div style={{ display: 'flex', gap: 24, fontSize: 12, color: 'var(--text-muted)' }}>
                 <span>Repo: {svc.repo_url || '-'}</span>

@@ -50,7 +50,7 @@ func (p *Pipeline) Run(issue model.Issue, svc model.Service) {
 	}
 
 	prompt := buildFixPrompt(issue)
-	cmd := exec.Command("claude", "-p", prompt, "--allowedTools", "Read,Edit,Bash")
+	cmd := exec.Command("claude", "-p", prompt, "--allowedTools", "Read,Edit,Bash", "--dangerously-skip-permissions")
 	cmd.Dir = repoPath
 	output, err := cmd.CombinedOutput()
 	if err != nil {

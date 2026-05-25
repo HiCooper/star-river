@@ -75,3 +75,4 @@ $RECYCLE.BIN/
  *.sql.bak
  docs/temp/
 sentinel/platform/server
+__pycache__/

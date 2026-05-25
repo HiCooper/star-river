@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 const navItems = [
   { label: 'Issue 看板', path: '/', icon: '◉' },
   { label: '服务配置', path: '/services', icon: '⚙' },
+  { label: '系统设置', path: '/settings', icon: '⚡' },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {

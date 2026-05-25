@@ -16,6 +16,7 @@ import (
 
 	"github.com/hydra/sentinel-service/internal/deepdiagnose"
 	"github.com/hydra/sentinel-service/internal/model"
+	"github.com/hydra/sentinel-service/internal/notify"
 	"github.com/hydra/sentinel-service/internal/triage"
 	"github.com/hydra/sentinel-service/pkg/errors"
 	"github.com/hydra/sentinel-service/pkg/response"
@@ -125,7 +126,11 @@ func (h *IngestHandler) maybeCreateIssue(sig *model.ErrorSignature, req *IngestE
 
 		if h.triage != nil {
 			go h.enrichWithAI(issue, req)
-		}
+
+		go func() {
+			url := getSetting(h.db, "notify_dingtalk_url")
+			notify.IssueCreated(url, req.ServiceName, issue.Title, issue.Severity, issue.Category, issue.Severity)
+		}()		}
 	}
 }
 
@@ -214,4 +219,12 @@ func simplifyMsg(msg string) string {
 		return string(runes[:80])
 	}
 	return msg
+}
+
+func getSetting(db *gorm.DB, key string) string {
+	var s model.Setting
+	if err := db.Where("key = ?", key).First(&s).Error; err != nil {
+		return ""
+	}
+	return s.Value
 }

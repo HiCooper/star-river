@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/hydra/sentinel-service/internal/autofix"
+	"github.com/hydra/sentinel-service/internal/notify"
 	"github.com/hydra/sentinel-service/internal/model"
 	"github.com/hydra/sentinel-service/pkg/errors"
 	"github.com/hydra/sentinel-service/pkg/response"
@@ -95,6 +96,9 @@ func (h *IssueHandler) ApproveIssue(c *gin.Context) {
 				return
 			}
 			h.autofix.Run(issue, svc)
+
+			url := getSetting(h.db, "notify_dingtalk_url")
+			notify.IssueApproved(url, issue.ServiceName, issue.Title)
 		}()
 	}
 

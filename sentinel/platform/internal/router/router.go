@@ -27,6 +27,7 @@ func Setup(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	serviceHandler := handler.NewServiceHandler(db)
 	statsHandler := handler.NewStatsHandler(db)
 	safetyHandler := handler.NewSafetyHandler(db)
+	settingHandler := handler.NewSettingHandler(db)
 
 	v1 := r.Group("/api/v1")
 	{
@@ -62,6 +63,12 @@ func Setup(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			safety.GET("", safetyHandler.ListRules)
 			safety.POST("", safetyHandler.CreateRule)
 			safety.DELETE("/:id", safetyHandler.DeleteRule)
+
+		settings := v1.Group("/settings")
+		{
+			settings.GET("", settingHandler.GetSettings)
+			settings.POST("", settingHandler.UpdateSetting)
+		}
 		}
 	}
 

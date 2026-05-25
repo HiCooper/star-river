@@ -77,3 +77,8 @@ $RECYCLE.BIN/
 sentinel/platform/server
 __pycache__/
 sentinel/.env
+
+# Dashboard build
+sentinel/dashboard/.next/
+sentinel/dashboard/package-lock.json
+package-lock.json

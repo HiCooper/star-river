@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { Issue, Service, OverviewStats, fetchIssues, fetchStats, fetchServices } from '../lib/api';
 
@@ -10,26 +11,16 @@ const sevStyles: Record<string, { bg: string; dot: string }> = {
 };
 
 function getStatus(issue: Issue): { label: string; color: string; bg: string } {
-  const st = issue.status;
-  const rv = issue.review_status;
-  const fs = issue.fix_status;
-  const ft = issue.fix_type;
-  const pr = issue.fix_pr_url;
-  const af = issue.ai_auto_fixable;
-
+  const st = issue.status, rv = issue.review_status, fs = issue.fix_status, ft = issue.fix_type, pr = issue.fix_pr_url, af = issue.ai_auto_fixable;
   if (st === 'resolved') return { label: '已解决', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' };
   if (st === 'ignored') return { label: '已忽略', color: '#64748B', bg: 'rgba(100,116,139,0.15)' };
-
   if (fs === 'succeeded' || (pr && ft === 'auto')) return { label: '已提交PR', color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' };
   if (fs === 'in_progress' || ft === 'auto') return { label: '自动修复中', color: '#8B5CF6', bg: 'rgba(139,92,246,0.15)' };
   if (fs === 'failed') return { label: '修复失败', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' };
-
   if (rv === 'approved') return { label: '已批准·待修复', color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' };
   if (rv === 'rejected') return { label: '已拒绝', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' };
-
   if (af === 'yes') return { label: '待人工确认', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' };
   if (af === 'maybe') return { label: '待评估', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' };
-
   return { label: '待处理', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' };
 }
 
@@ -44,6 +35,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [services, setServices] = useState<Service[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [stats, setStats] = useState<OverviewStats | null>(null);
@@ -54,6 +46,33 @@ export default function Dashboard() {
     fetchServices().then(setServices);
     fetchStats().then(r => { if (r) setStats(r); });
   }, []);
+
+  // Read initial filters from URL on mount
+  useEffect(() => {
+    if (router.isReady) {
+      const app = router.query.app as string || '';
+      const sev = router.query.severity as string || '';
+      setActiveApp(app);
+      setSevFilter(sev);
+    }
+  }, [router.isReady]);
+
+  // Update URL when filters change
+  const setAppWithUrl = useCallback((app: string) => {
+    setActiveApp(app);
+    const query: Record<string, string> = {};
+    if (app) query.app = app;
+    if (sevFilter) query.severity = sevFilter;
+    router.push({ query }, undefined, { shallow: true });
+  }, [sevFilter, router]);
+
+  const setSevWithUrl = useCallback((sev: string) => {
+    setSevFilter(sev);
+    const query: Record<string, string> = {};
+    if (activeApp) query.app = activeApp;
+    if (sev) query.severity = sev;
+    router.push({ query }, undefined, { shallow: true });
+  }, [activeApp, router]);
 
   useEffect(() => {
     const params: Record<string, string> = {};
@@ -77,7 +96,7 @@ export default function Dashboard() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          <button onClick={() => setActiveApp('')} style={{
+          <button onClick={() => setAppWithUrl('')} style={{
             padding: '6px 14px', borderRadius: 'var(--radius)', border: '1px solid var(--border)',
             background: !activeApp ? 'var(--accent-glow)' : 'transparent',
             color: !activeApp ? 'var(--accent)' : 'var(--text-secondary)',
@@ -85,7 +104,7 @@ export default function Dashboard() {
             transition: 'var(--transition)',
           }}>All Apps</button>
           {services.map(svc => (
-            <button key={svc.id} onClick={() => setActiveApp(svc.name)} style={{
+            <button key={svc.id} onClick={() => setAppWithUrl(svc.name)} style={{
               padding: '6px 14px', borderRadius: 'var(--radius)', border: '1px solid var(--border)',
               background: activeApp === svc.name ? 'var(--accent-glow)' : 'transparent',
               color: activeApp === svc.name ? 'var(--accent)' : 'var(--text-secondary)',
@@ -97,7 +116,7 @@ export default function Dashboard() {
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           {['', 'critical', 'high', 'medium', 'low'].map(sev => (
-            <button key={sev} onClick={() => setSevFilter(sev)} style={{
+            <button key={sev} onClick={() => setSevWithUrl(sev)} style={{
               padding: '3px 10px', borderRadius: 12, border: '1px solid var(--border)',
               background: sevFilter === sev ? (sevStyles[sev]?.bg || 'var(--bg-hover)') : 'transparent',
               color: sevFilter === sev ? (sevStyles[sev]?.dot || 'var(--text-primary)') : 'var(--text-muted)',
@@ -131,7 +150,6 @@ export default function Dashboard() {
                   {issue.deep_diagnosis && <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 10,
                     background: 'rgba(59,130,246,0.15)', color: 'var(--info)', fontFamily: 'var(--font-mono)',
                   }}>精诊</span>}
-                  {/* Status badge */}
                   <span style={{
                     padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 500,
                     background: status.bg, color: status.color, fontFamily: 'var(--font-mono)',

@@ -42,6 +42,7 @@ func TailFile(filePath string, out chan<- ErrorEntry, stop <-chan struct{}) {
 	for {
 		select {
 		case <-stop:
+			close(out)
 			return
 		default:
 		}

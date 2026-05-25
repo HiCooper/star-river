@@ -60,7 +60,9 @@ func (p *Pipeline) Run(issue model.Issue, svc model.Service) {
 	worktreePath := filepath.Join(os.TempDir(), fmt.Sprintf("sentinel-fix-%s", issue.ID.String()[:8]))
 
 	// Clean up any previous worktree
-	exec.Command("git", "-C", repoPath, "worktree", "remove", "--force", worktreePath).Run()
+	if err := exec.Command("git", "-C", repoPath, "worktree", "remove", "--force", worktreePath).Run(); err != nil {
+		log.Printf("[autofix] cleanup worktree error: %v", err)
+	}
 
 	// Step 1: git fetch + create worktree
 	step := p.runCmd("git fetch", repoPath, "git", "fetch", "origin")
@@ -179,8 +181,12 @@ func (p *Pipeline) runCmd(label string, dir string, name string, args ...string)
 }
 
 func (p *Pipeline) cleanup(repoPath, worktreePath, branch string) {
-	exec.Command("git", "-C", repoPath, "worktree", "remove", "--force", worktreePath).Run()
-	exec.Command("git", "-C", repoPath, "branch", "-D", branch).Run()
+	if err := exec.Command("git", "-C", repoPath, "worktree", "remove", "--force", worktreePath).Run(); err != nil {
+		log.Printf("[autofix] cleanup worktree error: %v", err)
+	}
+	if err := exec.Command("git", "-C", repoPath, "branch", "-D", branch).Run(); err != nil {
+		log.Printf("[autofix] cleanup branch error: %v", err)
+	}
 }
 
 func (p *Pipeline) saveLog(issueID uuid.UUID, fixLog *FixLog) {

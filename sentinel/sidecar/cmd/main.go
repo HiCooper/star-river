@@ -32,13 +32,8 @@ func main() {
 	}()
 
 	if cfg.LogPath != "" && cfg.LogPath != "-" {
-		// File following mode (tail -f)
 		tailer.TailFile(cfg.LogPath, entries, stop)
 	} else {
-		// Stdin pipe mode
-		go func() {
-			<-stop
-		}()
 		tailer.Tail(os.Stdin, entries)
 	}
 

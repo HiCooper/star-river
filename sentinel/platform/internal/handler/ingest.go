@@ -93,8 +93,8 @@ func (h *IngestHandler) IngestErrors(c *gin.Context) {
 
 		h.db.Model(&model.ErrorSignature{}).
 			Where("id = ?", es.ID).
-			Select("occurrence_count").
-			Scan(&es.OccurrenceCount)
+			Select("occurrence_count", "first_seen_at").
+			Scan(&es)
 
 		actualCount++
 

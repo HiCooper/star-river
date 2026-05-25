@@ -9,6 +9,7 @@ function DeepDiagnosis({ issue }: { issue: Issue }) {
   if (!issue.deep_diagnosis) return null;
   try {
     const d = typeof issue.deep_diagnosis === 'string' ? JSON.parse(issue.deep_diagnosis) : issue.deep_diagnosis;
+    const raw = d.raw_output || d.RawOutput || '';
     return (
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--info)', borderRadius: 'var(--radius)', padding: 18, marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--info)', fontFamily: 'var(--font-mono)' }}>Claude Code 精诊分析</div>
@@ -20,6 +21,18 @@ function DeepDiagnosis({ issue }: { issue: Issue }) {
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>修复方案</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{d.fix_plan || d.FixPlan || '-'}</div>
         </div>
+        {raw && (
+          <details style={{ marginTop: 12 }}>
+            <summary style={{ fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
+              Claude Code 控制台输出
+            </summary>
+            <pre style={{
+              background: '#0a0a0a', color: '#94A3B8', padding: '10px 14px',
+              borderRadius: 4, marginTop: 8, overflow: 'auto', maxHeight: 400,
+              fontSize: 11, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+            }}>{raw}</pre>
+          </details>
+        )}
       </div>
     );
   } catch { return null; }

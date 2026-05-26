@@ -1,0 +1,14 @@
+{
+  "tasks": [
+    {
+      "id": "4b7fb702",
+      "cron": "17 9 * * 2",
+      "prompt": "请对星河 (Star-River) 项目进行一次全面的阶段分析，并将报告落地到文档站点。\n\n## 分析步骤\n\n### 1. 代码与进展分析\n- 阅读 git log，了解自上次分析以来的所有变更（`git log --oneline --since=\"7 days ago\"`）\n- 阅读各服务的 main.go、router.go 了解入口和路由变化\n- 检查 hydra-wall/service/internal/ 和 hydra-pay/service/internal/ 下的 handler、service、repository 变更\n- 检查 frontend 项目（wall-admin、wall-frontend、pay-frontend）的变更\n\n### 2. 能力缺口分析\n- 对照 PRD_PHASE1.md 和 DEVELOPMENT_PLAN.md 的里程碑，逐项评估完成度\n- 识别新实现的功能模块\n- 识别仍未实现的关键能力（Plan、Entitlement、A/B实验、SDK等）\n- 识别新引入的 Bug 或质量问题\n\n### 3. QPS 与性能评估\n- 检查 HTTP Server 超时配置是否有变化\n- 检查限流、熔断、连接池等配置\n- 检查是否有新增的缓存策略\n- 检查 Worker/goroutine pool 的变化\n- 评估当前单实例可承接的 QPS\n\n### 4. 关键风险识别\n- 性能风险（无超时、无界 goroutine、单 Worker 等）\n- 功能风险（核心链路断裂、集成缺失）\n- 安全风险\n\n### 5. 生成报告\n在 `docs-site/analysis/` 目录下创建文件，文件名格式：`YYYY-MM-DD-star-river-analysis.md`（用当天日期）。\n\n报告结构：\n```markdown\n# YYYY-MM-DD 星河项目阶段分析\n\n> 分析日期：YYYY-MM-DD | 基于当前 main 分支代码\n\n## 一、本期变更摘要\n（git log 变更要点）\n\n## 二、各产品线实现进度\n（Hydra-Wall、Hydra-Pay、Sentinel 的完成度表格）\n\n## 三、能力缺口\n（按优先级排列的缺失能力清单）\n\n## 四、QPS 评估\n（分接口的当前/优化后 QPS 估算）\n\n## 五、关键风险\n（性能/功能/安全风险表格）\n\n## 六、下一阶段建议\n（策略建议和优先级排序）\n```\n\n### 6. 更新文档站点导航\n- 更新 `docs-site/analysis/index.md`，在报告列表顶部添加新条目\n- 更新 `docs-site/.vitepress/config.ts`，在 `/analysis/` sidebar 的 items 数组顶部添加新条目\n\n用中文撰写报告。分析要基于实际代码阅读，不要凭空猜测。QPS 估算要给出具体的瓶颈分析和计算依据。",
+      "createdAt": 1779780261697,
+      "recurring": true,
+      "createdBySessionId": "d02a7662-a033-4403-8d92-154fa9954e9e",
+      "createdByPid": 7947,
+      "createdByProcStart": "Tue May 26 07:10:42 2026"
+    }
+  ]
+}

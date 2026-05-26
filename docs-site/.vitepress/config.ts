@@ -26,6 +26,7 @@ export default withMermaid(defineConfig({
       { text: '产品指南', link: '/guide/', activeMatch: '^/guide/' },
       { text: '技术文档', link: '/dev/', activeMatch: '^/dev/' },
       { text: '内部知识', link: '/knowledge/', activeMatch: '^/knowledge/' },
+      { text: '分析报告', link: '/analysis/', activeMatch: '^/analysis/' },
     ],
 
     sidebar: {
@@ -137,6 +138,14 @@ export default withMermaid(defineConfig({
             { text: 'sentinel.yaml 参考', link: '/dev/sentinel/sentinel-yaml-reference' },
             { text: '安全规则配置', link: '/dev/sentinel/safety-rules' },
             { text: '自动修复详解', link: '/dev/sentinel/auto-fix-workflow' },
+          ],
+        },
+      ],
+      '/analysis/': [
+        {
+          text: '分析报告',
+          items: [
+            { text: '2026-05-26 星河项目全面分析', link: '/analysis/2026-05-26-star-river-comprehensive-analysis' },
           ],
         },
       ],

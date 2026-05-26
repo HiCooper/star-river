@@ -89,6 +89,7 @@ export default withMermaid(defineConfig({
             { text: '支付路由', link: '/dev/pay/payment-router' },
             { text: '渠道适配器', link: '/dev/pay/channel-adapters' },
             { text: '回调处理流程', link: '/dev/pay/callback-flow' },
+            { text: '商户进件', link: '/dev/pay/merchant-onboarding' },
             { text: '订单超时关单', link: '/dev/pay/order-sync' },
             { text: 'API 参考', link: '/dev/pay/api-reference' },
           ],
@@ -116,6 +117,7 @@ export default withMermaid(defineConfig({
             { text: '快速集成', link: '/dev/integration/quick-start' },
             { text: '托管模式', link: '/dev/integration/hosted-mode' },
             { text: 'SDK 模式', link: '/dev/integration/sdk-mode' },
+            { text: 'Webhook 签名验证', link: '/dev/integration/webhook-verification' },
           ],
         },
         {

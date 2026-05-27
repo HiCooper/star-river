@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -108,6 +109,7 @@ func parseLine(line []byte) *ErrorEntry {
 	}
 
 	level, _ := entry["level"].(string)
+	level = strings.ToLower(level)
 	if level != "error" && level != "fatal" && level != "panic" {
 		return nil
 	}

@@ -155,6 +155,8 @@ export default withMermaid(defineConfig({
           items: [
             { text: '服务访问入口', link: '/knowledge/service-endpoints' },
             { text: '支付宝沙箱验证', link: '/knowledge/alipay-sandbox-verification' },
+            { text: '云闪付渠道测试', link: '/knowledge/unionpay-testing' },
+            { text: '云闪付技术方案', link: '/knowledge/unionpay-tech-design' },
             { text: '微信支付接入准备', link: '/knowledge/wechat-pay-setup' },
             { text: '市场调研与借鉴', link: '/knowledge/competitive-analysis' },
             { text: '服务商设计决策', link: '/knowledge/service-provider-design' },

@@ -9,7 +9,7 @@ export default withMermaid(defineConfig({
   vite: {},
   title: '星河支付',
   description: 'Hydra 支付基础设施 - 付费墙 + 统一支付网关',
-  base: '/',
+  base: '/star-river/',
   lang: 'zh-CN',
 
   head: [
@@ -169,7 +169,7 @@ export default withMermaid(defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/hydra-pay' },
+      { icon: 'github', link: 'https://github.com/HiCooper/star-river' },
     ],
 
     search: {

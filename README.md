@@ -2,7 +2,7 @@
   <h1 align="center">🌌 星河 · Star-River</h1>
   <p align="center"><strong>AI 时代的支付基础设施</strong></p>
   <p align="center">
-    <a href="https://star-river.dev">文档站点</a> ·
+- 📖 [文档站点](https://hicooper.github.io/star-river)
     <a href="#-项目结构">项目结构</a> ·
     <a href="#-快速开始">快速开始</a> ·
     <a href="#-贡献指南">贡献指南</a>
@@ -241,7 +241,7 @@ cd docs-site && npm install && npm run docs:dev
 
 ### 如何参与
 
-1. **阅读文档** — 从 [产品概述](https://star-river.dev/guide/what-is-hydra) 和 [技术架构](https://star-river.dev/dev/architecture/) 开始
+1. **阅读文档** — 从 [产品概述](https://hicooper.github.io/star-river/guide/what-is-hydra) 和 [技术架构](https://hicooper.github.io/star-river/dev/architecture/) 开始
 2. **认领 Issue** — 查看仓库中标记为 `good first issue` 的任务
 3. **提交 PR** — Fork 仓库，创建功能分支，提交你的改动
 
@@ -254,7 +254,7 @@ cd docs-site && npm install && npm run docs:dev
 
 ### 社区
 
-- 📖 [文档站点](https://star-river.dev)
+- 📖 [文档站点](https://hicooper.github.io/star-river)
 - 💬 [GitHub Discussions](#)
 - 🐛 [Issue Tracker](https://github.com/HiCooper/star-river/issues)
 

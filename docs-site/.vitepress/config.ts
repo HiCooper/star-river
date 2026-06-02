@@ -36,6 +36,7 @@ export default withMermaid(defineConfig({
           items: [
             { text: '产品概述', link: '/guide/what-is-hydra' },
             { text: '快速开始', link: '/guide/getting-started' },
+            { text: 'AI 时代支付愿景', link: '/guide/vision-ai-era-payments' },
           ],
         },
         {
@@ -161,7 +162,6 @@ export default withMermaid(defineConfig({
             { text: '微信支付接入准备', link: '/knowledge/wechat-pay-setup' },
             { text: '市场调研与借鉴', link: '/knowledge/competitive-analysis' },
             { text: '服务商设计决策', link: '/knowledge/service-provider-design' },
-            { text: 'AI 时代支付愿景', link: '/knowledge/vision-ai-era-payments' },
             { text: '架构决策记录', link: '/knowledge/adr/' },
           ],
         },

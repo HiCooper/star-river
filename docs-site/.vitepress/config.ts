@@ -145,6 +145,7 @@ export default withMermaid(defineConfig({
         {
           text: '分析报告',
           items: [
+            { text: '2026-06-02 星河项目进展报告', link: '/analysis/2026-06-02-star-river-progress-report' },
             { text: '2026-05-26 星河项目全面分析', link: '/analysis/2026-05-26-star-river-comprehensive-analysis' },
           ],
         },

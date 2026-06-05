@@ -44,12 +44,6 @@ star-river/
 │   ├── front/wall-admin/  管理后台（Next.js 16）
 │   └── front/wall-frontend/ 用户侧付费墙渲染
 │
-├── sentinel/           ← AI 可观测性平台（Go + Python）
-│   ├── platform/          REST API + 自动修复管线
-│   ├── ai-engine/         AI 错误诊断引擎（FastAPI）
-│   ├── sidecar/           日志采集 Sidecar
-│   └── dashboard/         监控看板（Next.js）
-│
 └── docs-site/          ← VitePress 文档站点（50+ 篇文档）
 ```
 
@@ -59,10 +53,9 @@ star-river/
 |------|------|------|--------|
 | Hydra-Pay | Go · Gin · GORM | React 18+ · Vite · Ant Design | PostgreSQL 16 |
 | Hydra-Wall | Go · Gin · GORM | Next.js 16 · React 19 · Ant Design | PostgreSQL 16 · Redis 7 |
-| Sentinel | Go · Python · FastAPI | Next.js | PostgreSQL 16 |
 
 - **可观测性:** OpenTelemetry · Prometheus · 结构化日志
-- **弹性:** Sentinel-golang 限流 + 熔断 · 幂等性保障 · 优雅关闭
+- **弹性:** 限流 + 熔断 · 幂等性保障 · 优雅关闭
 
 ### 支付渠道
 
@@ -166,28 +159,17 @@ cd docs-site && npm install && npm run docs:dev
 │  SDK     │  API     │  Portal  │  Hosted Checkout│
 └──────────┴──────────┴──────────┴─────────────────┘
                           │
-          ┌───────────────┴───────────────┐
-          ▼                               ▼
-  ┌──────────────┐               ┌──────────────┐
-  │  Hydra-Wall  │◄── 支付回调 ──│  Hydra-Pay   │
-  │  付费墙引擎   │               │  支付网关     │
-  ├──────────────┤               ├──────────────┤
-  │ 条件评估引擎  │               │ 渠道适配器    │
-  │ 受众定向     │               │ 支付宝·微信   │
-  │ A/B 测试     │               │ 云闪付·数币   │
-  │ 事件分析     │               │ 订阅·退款     │
-  └──────┬───────┘               └──────┬───────┘
-         │                              │
-         └──────────┬───────────────────┘
-                    ▼
-          ┌─────────────────┐
-          │    Sentinel      │
-          │  AI 可观测性平台  │
-          ├─────────────────┤
-          │ 错误智能诊断     │
-          │ 自动修复管线     │
-          │ 告警·通知       │
-          └─────────────────┘
+              ┌───────────┴───────────┐
+              ▼                       ▼
+      ┌──────────────┐       ┌──────────────┐
+      │  Hydra-Wall  │◄──────│  Hydra-Pay   │
+      │  付费墙引擎   │       │  支付网关     │
+      ├──────────────┤       ├──────────────┤
+      │ 条件评估引擎  │       │ 渠道适配器    │
+      │ 受众定向     │       │ 支付宝·微信   │
+      │ A/B 测试     │       │ 云闪付·数币   │
+      │ 事件分析     │       │ 订阅·退款     │
+      └──────────────┘       └──────────────┘
 ```
 
 ---
@@ -214,7 +196,6 @@ cd docs-site && npm install && npm run docs:dev
 - [x] 智能付费墙引擎（条件 DSL、受众定向、A/B 配置）
 - [x] 付费墙管理后台（Next.js，全功能，已对接真实 API）
 - [x] 支付管理后台 + 商户门户
-- [x] Sentinel 错误诊断平台（框架搭建，AI 引擎待接入）
 - [x] 限流 + 熔断 + 链路追踪
 - [x] 50+ 篇中英文技术文档
 

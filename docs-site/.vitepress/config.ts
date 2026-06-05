@@ -130,17 +130,6 @@ export default withMermaid(defineConfig({
             { text: '监控告警', link: '/dev/deployment/monitoring' },
           ],
         },
-        {
-          text: '星河哨兵',
-          items: [
-            { text: '系统概览', link: '/dev/sentinel/' },
-            { text: '架构设计', link: '/dev/sentinel/architecture' },
-            { text: '服务接入指南', link: '/dev/sentinel/integration-guide' },
-            { text: 'sentinel.yaml 参考', link: '/dev/sentinel/sentinel-yaml-reference' },
-            { text: '安全规则配置', link: '/dev/sentinel/safety-rules' },
-            { text: '自动修复详解', link: '/dev/sentinel/auto-fix-workflow' },
-          ],
-        },
       ],
       '/analysis/': [
         {

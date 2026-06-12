@@ -1,0 +1,42 @@
+version: 1
+project: star-river
+acceptance:
+  specs: ["hydra-pay/tests/**/*.go", "hydra-wall/tests/**/*.go"]
+  mode: all
+quality:
+  go_lint:
+    check: "golangci-lint run ./..."
+    mode: all; auto_fix: true
+  go_test:
+    check: "go test ./... -coverprofile=coverage.out && go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//' | xargs -I{} sh -c 'test {} -ge 80'"
+    mode: all; auto_fix: true
+  go_vet:
+    check: "go vet ./..."
+    mode: all; auto_fix: true
+  security:
+    check: "gosec ./... 2>/dev/null || echo 'gosec not installed'"
+    mode: all; auto_fix: false
+architecture:
+  constraints_file: ".claude/constraints.yaml"
+  mode: all
+performance:
+  - name: "支付接口 P99 < 500ms"
+    check: "manual"
+    mode: warn
+  - name: "支付成功率 >= 99.99%"
+    check: "manual"
+    mode: warn
+escalation:
+  max_iterations_without_progress: 5
+  max_token_budget: null
+  decisions_needing_human:
+    - new_payment_channel
+    - risk_rule_change
+    - fee_structure_change
+    - settlement_period_change
+    - authentication_change
+    - breaking_api_change
+    - database_schema_change
+  ambiguous_requirements:
+    strategy: "propose_options"
+    max_options: 3
